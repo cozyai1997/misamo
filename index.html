@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>misamo | 미래 사장님들의 모임</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="misamo home">
+          <span class="brand-mark">
+            misa<span>mo</span>
+            <b aria-hidden="true">♥</b>
+          </span>
+          <small>미래 사장님들의 모임</small>
+        </a>
+
+        <label class="search" aria-label="검색">
+          <input type="search" placeholder="창업 정보, 컨설팅, 사람을 검색해보세요" />
+          <i data-lucide="search"></i>
+        </label>
+
+        <nav class="top-actions" aria-label="상단 메뉴">
+          <button class="icon-button" type="button" aria-label="새 글">
+            <i data-lucide="square-plus"></i>
+          </button>
+          <button class="icon-button has-badge" type="button" aria-label="알림">
+            <i data-lucide="bell"></i>
+            <span>3</span>
+          </button>
+          <button class="icon-button" type="button" aria-label="보내기">
+            <i data-lucide="send"></i>
+          </button>
+          <button class="profile-button" type="button" aria-label="프로필 메뉴">
+            <img
+              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80"
+              alt=""
+            />
+            <i data-lucide="chevron-down"></i>
+          </button>
+        </nav>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar" aria-label="주 메뉴">
+          <nav class="side-nav">
+            <a class="nav-item active" href="#">
+              <i data-lucide="home"></i>
+              <span>홈</span>
+            </a>
+            <a class="nav-item" href="#">
+              <i data-lucide="list"></i>
+              <span>피드</span>
+            </a>
+            <a class="nav-item" href="#">
+              <i data-lucide="compass"></i>
+              <span>탐색</span>
+            </a>
+            <a class="nav-item" href="#">
+              <i data-lucide="bookmark"></i>
+              <span>저장</span>
+            </a>
+            <a class="nav-item" href="#">
+              <i data-lucide="send"></i>
+              <span>메시지</span>
+            </a>
+            <a class="nav-item" href="#">
+              <i data-lucide="bell"></i>
+              <span>알림</span>
+            </a>
+          </nav>
+
+          <a class="consult-card" href="#">
+            <span>
+              <strong>무료 상담 신청</strong>
+              <small>전문가와 1:1 상담해보세요</small>
+            </span>
+            <i data-lucide="chevron-right"></i>
+          </a>
+
+          <div class="menu-group">
+            <p>주요 메뉴</p>
+            <a href="#"><i data-lucide="briefcase"></i>창업 정보</a>
+            <a href="#"><i data-lucide="settings-2"></i>컨설팅 서비스</a>
+            <a href="#"><i data-lucide="graduation-cap"></i>교육 & 세미나</a>
+            <a href="#"><i data-lucide="users"></i>네트워킹</a>
+            <a href="#"><i data-lucide="trending-up"></i>성공 사례</a>
+            <a href="#"><i data-lucide="folder"></i>자료실</a>
+          </div>
+
+          <section class="promo-card">
+            <h2>창업, 혼자<br />고민하지 마세요</h2>
+            <p>미사모가 함께합니다</p>
+            <div class="promo-art" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <button class="outline-button" type="button">
+              미사모 소개 보기
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </section>
+        </aside>
+
+        <main class="content">
+          <section class="stories" aria-label="스토리">
+            <article class="story-card">
+              <div class="story-ring logo-story">
+                <span>misamo</span>
+                <button type="button" aria-label="스토리 추가">+</button>
+              </div>
+              <p>내 스토리</p>
+            </article>
+            <article class="story-card">
+              <div class="story-ring soft-yellow">
+                <i data-lucide="lightbulb"></i>
+              </div>
+              <p>창업 꿀팁</p>
+            </article>
+            <article class="story-card">
+              <div
+                class="story-ring"
+                style="--story-image: url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=220&q=80')"
+              ></div>
+              <p>컨설팅 후기</p>
+            </article>
+            <article class="story-card">
+              <div class="story-ring soft-coral">
+                <i data-lucide="calendar-days"></i>
+              </div>
+              <p>세미나 일정</p>
+            </article>
+            <article class="story-card">
+              <div class="story-ring soft-gold">
+                <i data-lucide="trophy"></i>
+              </div>
+              <p>성공 사례</p>
+            </article>
+            <article class="story-card">
+              <div
+                class="story-ring"
+                style="--story-image: url('https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=220&q=80')"
+              ></div>
+              <p>네트워킹</p>
+            </article>
+            <article class="story-card">
+              <div class="story-ring soft-blue">
+                <i data-lucide="message-circle"></i>
+              </div>
+              <p>자유 Q&A</p>
+            </article>
+          </section>
+
+          <section class="hero-panel">
+            <div class="hero-copy">
+              <h1>미래 사장님의<br />내일을 응원합니다 <span>♥</span></h1>
+              <p>창업 정보부터 컨설팅, 네트워킹까지<br />성공 창업의 모든 여정을 함께해요.</p>
+            </div>
+            <div class="hero-scene" aria-hidden="true">
+              <div class="window">
+                <span></span>
+                <span></span>
+              </div>
+              <div class="lamp"></div>
+              <div class="plant">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="desk">
+                <div class="laptop"></div>
+                <div class="cup"></div>
+              </div>
+              <strong>Your<br />Success</strong>
+            </div>
+            <div class="hero-dots" aria-hidden="true">
+              <span></span>
+              <span class="active"></span>
+              <span></span>
+            </div>
+          </section>
+
+          <section class="feed-panel">
+            <div class="feed-tabs">
+              <nav aria-label="피드 필터">
+                <button class="chip active" type="button">전체</button>
+                <button class="chip" type="button">창업 정보</button>
+                <button class="chip" type="button">컨설팅 후기</button>
+                <button class="chip" type="button">세미나</button>
+                <button class="chip" type="button">네트워킹</button>
+                <button class="chip" type="button">자유 Q&A</button>
+              </nav>
+              <button class="sort-button" type="button">
+                최신순
+                <i data-lucide="chevron-down"></i>
+              </button>
+            </div>
+
+            <article class="post-card">
+              <header class="post-head">
+                <div>
+                  <img
+                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80"
+                    alt=""
+                  />
+                  <span>
+                    <strong>startup_hello</strong>
+                    <small>3시간 전</small>
+                  </span>
+                </div>
+                <button class="icon-button flat" type="button" aria-label="더보기">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </header>
+              <div class="post-body">
+                <div class="post-copy">
+                  <h2>카페 창업 준비 과정, 이렇게 시작했어요! ☕</h2>
+                  <p>
+                    막연하기만 했던 창업 준비, 미사모의 컨설팅 덕분에 한 단계씩 체계적으로 준비할 수
+                    있었어요. 같은 길을 걷고 계신 분들께 도움이 되길 바랍니다!
+                  </p>
+                  <div class="tags">
+                    <span>#카페창업</span>
+                    <span>#창업준비</span>
+                    <span>#미사모컨설팅</span>
+                    <span>#예비사장</span>
+                  </div>
+                </div>
+                <img
+                  class="post-image"
+                  src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=760&q=80"
+                  alt="따뜻한 분위기의 카페 내부"
+                />
+              </div>
+              <footer class="post-actions">
+                <div>
+                  <button type="button" class="action-button liked">
+                    <i data-lucide="heart"></i>
+                    <span>124</span>
+                  </button>
+                  <button type="button" class="action-button">
+                    <i data-lucide="message-circle"></i>
+                    <span>23</span>
+                  </button>
+                  <button type="button" class="action-button">
+                    <i data-lucide="send"></i>
+                    <span>15</span>
+                  </button>
+                </div>
+                <button type="button" class="action-button" aria-label="저장">
+                  <i data-lucide="bookmark"></i>
+                </button>
+              </footer>
+            </article>
+
+            <article class="post-card compact">
+              <header class="post-head">
+                <div>
+                  <img
+                    src="https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=120&q=80"
+                    alt=""
+                  />
+                  <span>
+                    <strong>growth_ceo</strong>
+                    <small>1일 전</small>
+                  </span>
+                </div>
+                <button class="icon-button flat" type="button" aria-label="더보기">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </header>
+              <div class="post-body">
+                <div class="post-copy">
+                  <h2>정부 지원 사업 선정 꿀팁 총정리!</h2>
+                  <p>
+                    사업계획서의 핵심은 숫자보다 문제 정의였습니다. 준비 단계에서 놓치기 쉬운 체크포인트를
+                    정리했어요.
+                  </p>
+                </div>
+                <img
+                  class="post-image"
+                  src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=760&q=80"
+                  alt="문서와 노트북이 놓인 책상"
+                />
+              </div>
+            </article>
+          </section>
+        </main>
+
+        <aside class="right-rail" aria-label="보조 정보">
+          <section class="profile-card">
+            <div class="profile-row">
+              <img
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80"
+                alt=""
+              />
+              <div>
+                <strong>misamo_korea</strong>
+                <small>미사모</small>
+              </div>
+              <button class="small-button" type="button">프로필 보기</button>
+            </div>
+            <dl class="stats">
+              <div>
+                <dt>78</dt>
+                <dd>게시글</dd>
+              </div>
+              <div>
+                <dt>256</dt>
+                <dd>팔로워</dd>
+              </div>
+              <div>
+                <dt>134</dt>
+                <dd>팔로잉</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="side-card schedule-card">
+            <header>
+              <h2>다가오는 일정</h2>
+              <a href="#">더보기 <i data-lucide="chevron-right"></i></a>
+            </header>
+            <article>
+              <time><b>05.30</b><span>(목)</span></time>
+              <div>
+                <strong>예비 창업자를 위한 사업계획서 작성법</strong>
+                <small>14:00 - 17:00 · 온라인 강의</small>
+              </div>
+            </article>
+            <article>
+              <time><b>06.05</b><span>(수)</span></time>
+              <div>
+                <strong>정부 지원 사업 활용 전략 세미나</strong>
+                <small>14:00 - 17:00 · 강남 교육장</small>
+              </div>
+            </article>
+            <article>
+              <time><b>06.12</b><span>(수)</span></time>
+              <div>
+                <strong>SNS 마케팅 실전 노하우</strong>
+                <small>14:00 - 17:00 · 온라인 강의</small>
+              </div>
+            </article>
+          </section>
+
+          <section class="side-card popular-card">
+            <header>
+              <h2>지금 인기 있는 글 🔥</h2>
+              <a href="#">더보기 <i data-lucide="chevron-right"></i></a>
+            </header>
+            <ol>
+              <li>
+                <b>1</b>
+                <img
+                  src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=180&q=80"
+                  alt=""
+                />
+                <span>무자본 창업 아이템 7가지 추천!<small>♥ 256</small></span>
+              </li>
+              <li>
+                <b>2</b>
+                <img
+                  src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=180&q=80"
+                  alt=""
+                />
+                <span>카페 창업 비용, 얼마나 들까?<small>♥ 198</small></span>
+              </li>
+              <li>
+                <b>3</b>
+                <img
+                  src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=180&q=80"
+                  alt=""
+                />
+                <span>정부 지원금 200% 활용법<small>♥ 176</small></span>
+              </li>
+              <li>
+                <b>4</b>
+                <img
+                  src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=180&q=80"
+                  alt=""
+                />
+                <span>스마트스토어로 월 300만원 만들기<small>♥ 142</small></span>
+              </li>
+            </ol>
+          </section>
+
+          <section class="community-card">
+            <h2>함께 성장하는 커뮤니티</h2>
+            <p>미사모에서 다양한 사람들과 네트워크를 만들어보세요!</p>
+            <div class="avatar-stack" aria-hidden="true">
+              <img
+                src="https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=120&q=80"
+                alt=""
+              />
+              <img
+                src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80"
+                alt=""
+              />
+              <img
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
+                alt=""
+              />
+            </div>
+            <button class="join-button" type="button">
+              네트워킹 참여하기
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <nav class="mobile-nav" aria-label="모바일 메뉴">
+      <a class="active" href="#"><i data-lucide="home"></i><span>홈</span></a>
+      <a href="#"><i data-lucide="list"></i><span>피드</span></a>
+      <a href="#"><i data-lucide="compass"></i><span>탐색</span></a>
+      <a href="#"><i data-lucide="bell"></i><span>알림</span></a>
+      <a href="#"><i data-lucide="user"></i><span>프로필</span></a>
+    </nav>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
