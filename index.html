@@ -52,7 +52,7 @@
       <div class="layout">
         <aside class="sidebar" aria-label="주 메뉴">
           <nav class="side-nav">
-            <a class="nav-item active" href="#">
+            <a class="nav-item active" href="#home" data-view-link data-view-target="home">
               <i data-lucide="home"></i>
               <span>홈</span>
             </a>
@@ -60,7 +60,7 @@
               <i data-lucide="list"></i>
               <span>피드</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="#explore" data-view-link data-view-target="explore">
               <i data-lucide="compass"></i>
               <span>탐색</span>
             </a>
@@ -96,7 +96,7 @@
             <a href="#"><i data-lucide="folder"></i>자료실</a>
           </div>
 
-          <section class="promo-card">
+          <section class="promo-card sidebar-panel is-active" data-sidebar-panel="home">
             <h2>창업, 혼자<br />고민하지 마세요</h2>
             <p>미사모가 함께합니다</p>
             <div class="promo-art" aria-hidden="true">
@@ -109,9 +109,19 @@
               <i data-lucide="arrow-right"></i>
             </button>
           </section>
+          <section class="promo-card explore-sidebar-card sidebar-panel" data-sidebar-panel="explore">
+            <h2>필요한 창업 정보를<br />더 빠르게 찾아보세요!</h2>
+            <p>검색과 필터로 원하는 정보를 정확하게 발견할 수 있어요.</p>
+            <div class="magnifier-art" aria-hidden="true"></div>
+            <button class="outline-button" type="button">
+              활용 가이드 보기
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </section>
         </aside>
 
         <main class="content">
+          <div class="page-view home-view is-active" data-page="home">
           <section class="stories" aria-label="스토리">
             <article class="story-card">
               <div class="story-ring logo-story">
@@ -336,9 +346,107 @@
               </div>
             </article>
           </section>
+          </div>
+          <div class="page-view explore-view" data-page="explore" aria-label="탐색 화면">
+            <section class="explore-hero">
+              <div class="explore-title">
+                <span class="explore-title-icon"><i data-lucide="search"></i></span>
+                <div>
+                  <h1>탐색</h1>
+                  <p>필요한 창업 정보와 전문가를 쉽게 찾아보세요.</p>
+                </div>
+              </div>
+
+              <div class="explore-search">
+                <i data-lucide="search"></i>
+                <input type="search" placeholder="검색어를 입력해주세요 (예: 카페 창업, 정부지원사업, 사업계획서)" />
+                <button type="button">검색</button>
+              </div>
+
+              <div class="keyword-row" aria-label="인기 검색어">
+                <strong>인기 검색어</strong>
+                <span># 카페 창업</span>
+                <span># 정부지원사업</span>
+                <span># 사업계획서</span>
+                <span># 창업 비용</span>
+                <span># 무인점포</span>
+                <span># 스마트스토어</span>
+                <span># 마케팅</span>
+              </div>
+            </section>
+
+            <section class="explore-card category-card">
+              <header>
+                <h2>카테고리로 탐색하기</h2>
+                <a href="#">전체 보기 <i data-lucide="chevron-right"></i></a>
+              </header>
+              <div class="category-grid">
+                <button type="button"><i data-lucide="lightbulb"></i><span>창업 준비</span></button>
+                <button type="button"><i data-lucide="landmark"></i><span>정부지원사업</span></button>
+                <button type="button"><i data-lucide="circle-dollar-sign"></i><span>창업 비용</span></button>
+                <button type="button"><i data-lucide="clipboard-pen"></i><span>사업계획서</span></button>
+                <button type="button"><i data-lucide="map-pin"></i><span>상권 분석</span></button>
+                <button type="button"><i data-lucide="megaphone"></i><span>마케팅</span></button>
+                <button type="button"><i data-lucide="scale"></i><span>세무·법무</span></button>
+                <button type="button"><i data-lucide="store"></i><span>프랜차이즈</span></button>
+                <button type="button"><i data-lucide="ellipsis"></i><span>더보기</span></button>
+              </div>
+            </section>
+
+            <section class="recommend-section">
+              <header>
+                <h2>맞춤 추천</h2>
+                <p>misamo_korea님을 위한 추천 콘텐츠예요.</p>
+              </header>
+              <div class="recommend-grid">
+                <article class="recommend-card">
+                  <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=520&q=80" alt="카페 내부" />
+                  <span>창업 정보</span>
+                  <h3>카페 창업 준비 체크리스트 10단계</h3>
+                  <p>실패 없는 카페 창업을 위한 필수 체크리스트를 확인해보세요.</p>
+                  <footer><small>startup_hello</small><b>♡ 124 · 👁 2.1k</b></footer>
+                </article>
+                <article class="recommend-card">
+                  <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=520&q=80" alt="사업 문서와 차트" />
+                  <span>지원서</span>
+                  <h3>카페 창업 비용 분석 엑셀 템플릿</h3>
+                  <p>초기 비용부터 고정비, 변동비까지 자동 계산 엑셀 파일입니다.</p>
+                  <footer><small>misamo_official</small><b>♡ 98 · 👁 1.6k</b></footer>
+                </article>
+                <article class="recommend-card">
+                  <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=520&q=80" alt="계약서 작성" />
+                  <span>전문가 칼럼</span>
+                  <h3>상권 분석, 이렇게 하면 실패하지 않아요</h3>
+                  <p>상권 분석의 핵심 포인트와 실제 사례를 통해 쉽게 알려드려요.</p>
+                  <footer><small>growth_ceo</small><b>♡ 156 · 👁 3.4k</b></footer>
+                </article>
+                <article class="recommend-card">
+                  <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=520&q=80" alt="마케팅 화면" />
+                  <span>창업 정보</span>
+                  <h3>카페 마케팅 아이디어 25가지</h3>
+                  <p>신규 고객을 끌어오는 카페 마케팅 전략을 소개합니다.</p>
+                  <footer><small>idea_biz</small><b>♡ 87 · 👁 1.3k</b></footer>
+                </article>
+              </div>
+            </section>
+
+            <section class="popular-resources">
+              <header>
+                <h2>인기 자료</h2>
+                <p>지금 가장 많이 조회되고 저장된 자료예요.</p>
+              </header>
+              <div class="resource-strip">
+                <article><b>1</b><img src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=160&q=80" alt="" /><span>2024 정부지원사업 총정리 가이드</span><small>👁 5.2k · ♡ 462</small></article>
+                <article><b>2</b><img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=160&q=80" alt="" /><span>사업계획서 작성 템플릿 (PPT)</span><small>👁 4.1k · ♡ 389</small></article>
+                <article><b>3</b><img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=160&q=80" alt="" /><span>창업 비용 계산기 엑셀 템플릿</span><small>👁 4.8k · ♡ 312</small></article>
+                <article><b>4</b><img src="https://images.unsplash.com/photo-1554224155-1696413565d3?auto=format&fit=crop&w=160&q=80" alt="" /><span>소상공인 세무 가이드북</span><small>👁 3.2k · ♡ 278</small></article>
+              </div>
+            </section>
+          </div>
         </main>
 
         <aside class="right-rail" aria-label="보조 정보">
+          <div class="rail-view home-rail is-active" data-rail="home">
           <section class="profile-card">
             <div class="profile-row">
               <img
@@ -458,19 +566,58 @@
               <i data-lucide="arrow-right"></i>
             </button>
           </section>
+          </div>
+          <div class="rail-view explore-rail" data-rail="explore">
+            <section class="side-card topic-card">
+              <header>
+                <h2>지금 많이 찾는 주제 🔥</h2>
+                <a href="#">더보기 <i data-lucide="chevron-right"></i></a>
+              </header>
+              <div class="topic-list">
+                <a href="#"><span># 카페 창업 비용</span><b>1.9k</b></a>
+                <a href="#"><span># 2024 정부지원사업</span><b>1.6k</b></a>
+                <a href="#"><span># 사업계획서 작성</span><b>1.3k</b></a>
+                <a href="#"><span># 무인점포 창업</span><b>1.2k</b></a>
+                <a href="#"><span># 스마트스토어</span><b>1.1k</b></a>
+                <a href="#"><span># 상권 분석</span><b>987</b></a>
+                <a href="#"><span># 창업 대출</span><b>856</b></a>
+                <a href="#"><span># 프랜차이즈 계약</span><b>743</b></a>
+              </div>
+            </section>
+            <section class="expert-cta">
+              <div>
+                <h2>내 고민에 맞는<br />전문가를 찾아보세요</h2>
+                <p>1:1 상담으로 빠르고 정확한 해결책을 얻을 수 있어요.</p>
+                <button class="join-button" type="button">전문가 상담 받기 <i data-lucide="arrow-right"></i></button>
+              </div>
+              <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=240&q=80" alt="" />
+            </section>
+            <section class="side-card expert-card">
+              <header>
+                <h2>추천 전문가</h2>
+                <a href="#">더보기 <i data-lucide="chevron-right"></i></a>
+              </header>
+              <div class="expert-list">
+                <article><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="" /><span><strong>김미사 세무사</strong><small>세무·회계 · 절세전략</small></span><b>★ 4.9</b></article>
+                <article><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80" alt="" /><span><strong>이성장 컨설턴트</strong><small>사업계획 · 창업전략</small></span><b>★ 4.8</b></article>
+                <article><img src="https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=120&q=80" alt="" /><span><strong>박브랜드 마케터</strong><small>마케팅 · 브랜딩</small></span><b>★ 4.9</b></article>
+              </div>
+              <button class="outline-button" type="button">전문가 더보기 <i data-lucide="arrow-right"></i></button>
+            </section>
+          </div>
         </aside>
       </div>
     </div>
 
     <nav class="mobile-nav" aria-label="모바일 메뉴">
-      <a class="active" href="#"><i data-lucide="home"></i><span>홈</span></a>
+      <a class="active" href="#home" data-view-link data-view-target="home"><i data-lucide="home"></i><span>홈</span></a>
       <a href="#"><i data-lucide="list"></i><span>피드</span></a>
-      <a href="#"><i data-lucide="compass"></i><span>탐색</span></a>
+      <a href="#explore" data-view-link data-view-target="explore"><i data-lucide="compass"></i><span>탐색</span></a>
       <a href="#"><i data-lucide="bell"></i><span>알림</span></a>
       <a href="#"><i data-lucide="user"></i><span>프로필</span></a>
     </nav>
 
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="./script.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" onload="window.createMisamoIcons && window.createMisamoIcons()"></script>
   </body>
 </html>

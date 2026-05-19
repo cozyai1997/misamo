@@ -1,3 +1,60 @@
+function createMisamoIcons() {
+  if (window.lucide) {
+    window.lucide.createIcons({
+      attrs: {
+        "aria-hidden": "true",
+      },
+    });
+  }
+}
+
+window.createMisamoIcons = createMisamoIcons;
+
+function initViewNavigation() {
+  const links = Array.from(document.querySelectorAll("[data-view-link]"));
+  const pages = Array.from(document.querySelectorAll("[data-page]"));
+  const rails = Array.from(document.querySelectorAll("[data-rail]"));
+  const sidebarPanels = Array.from(document.querySelectorAll("[data-sidebar-panel]"));
+
+  if (!links.length || !pages.length) {
+    return;
+  }
+
+  const setView = (view) => {
+    const nextView = pages.some((page) => page.dataset.page === view) ? view : "home";
+
+    pages.forEach((page) => {
+      page.classList.toggle("is-active", page.dataset.page === nextView);
+    });
+
+    rails.forEach((rail) => {
+      rail.classList.toggle("is-active", rail.dataset.rail === nextView);
+    });
+
+    sidebarPanels.forEach((panel) => {
+      panel.classList.toggle("is-active", panel.dataset.sidebarPanel === nextView);
+    });
+
+    links.forEach((link) => {
+      const isActive = link.dataset.viewTarget === nextView;
+      link.classList.toggle("active", isActive);
+      link.setAttribute("aria-current", isActive ? "page" : "false");
+    });
+
+    window.history.replaceState(null, "", `#${nextView}`);
+  };
+
+  links.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      setView(link.dataset.viewTarget);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  setView(window.location.hash.replace("#", "") || "home");
+}
+
 function initHeroCarousel() {
   const carousel = document.querySelector("[data-hero-carousel]");
 
@@ -62,12 +119,6 @@ function initHeroCarousel() {
   setSlide(currentIndex);
 }
 
+initViewNavigation();
 initHeroCarousel();
-
-if (window.lucide) {
-  window.lucide.createIcons({
-    attrs: {
-      "aria-hidden": "true",
-    },
-  });
-}
+createMisamoIcons();
