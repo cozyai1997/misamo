@@ -1614,6 +1614,20 @@ img {
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 10px 22px rgba(240, 82, 117, 0.2);
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.explore-search button:hover,
+.explore-search button:focus-visible {
+  background: #e84368;
+  box-shadow: 0 12px 26px rgba(240, 82, 117, 0.3);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.explore-search button:active {
+  box-shadow: 0 6px 14px rgba(240, 82, 117, 0.22);
+  transform: translateY(0);
 }
 
 .keyword-row {
@@ -1797,6 +1811,20 @@ img {
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--soft-shadow);
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.recommend-card:hover,
+.recommend-card:focus-within {
+  border-color: rgba(240, 82, 117, 0.3);
+  box-shadow: 0 16px 36px rgba(31, 38, 63, 0.13);
+  transform: translateY(-3px);
+}
+
+.recommend-card:active {
+  box-shadow: 0 10px 24px rgba(31, 38, 63, 0.1);
+  transform: translateY(-1px);
 }
 
 .recommend-card > img {
@@ -1937,6 +1965,18 @@ img {
   grid-template-rows: auto auto;
   gap: 10px;
   align-items: center;
+  cursor: pointer;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.resource-strip article:hover,
+.resource-strip article:focus-within {
+  color: var(--pink);
+  transform: translateY(-2px);
+}
+
+.resource-strip article:active {
+  transform: translateY(0);
 }
 
 .resource-strip b {
@@ -1990,6 +2030,19 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.topic-list a:hover,
+.topic-list a:focus-visible {
+  color: var(--pink);
+  outline: none;
+  transform: translateX(3px);
+}
+
+.topic-list a:hover span,
+.topic-list a:focus-visible span {
+  background: #eadfff;
 }
 
 .topic-list b {
