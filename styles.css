@@ -232,9 +232,9 @@ img {
 
 .layout {
   display: grid;
-  grid-template-columns: 250px minmax(0, 820px) 360px;
+  grid-template-columns: 250px minmax(0, 820px) minmax(320px, 360px);
   gap: 28px;
-  max-width: 1490px;
+  max-width: 1530px;
   margin: 0 auto;
   padding: 22px 22px 44px;
 }
@@ -455,6 +455,7 @@ img {
 .content {
   display: grid;
   gap: 22px;
+  min-width: 0;
 }
 
 .stories,
@@ -1059,6 +1060,7 @@ img {
 .right-rail {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .profile-card,
@@ -1337,7 +1339,7 @@ img {
   display: none;
 }
 
-@media (max-width: 1260px) {
+@media (max-width: 1540px) {
   .topbar {
     grid-template-columns: 220px minmax(240px, 1fr) auto;
     padding: 0 26px;
