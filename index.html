@@ -160,7 +160,13 @@
             </article>
           </section>
 
-          <section class="hero-panel" data-hero-carousel tabindex="0" aria-label="미사모 추천 배너">
+          <section
+            class="hero-panel"
+            data-hero-carousel
+            data-hero-theme="support"
+            tabindex="0"
+            aria-label="미사모 추천 배너"
+          >
             <button class="hero-nav hero-prev" type="button" data-hero-prev aria-label="이전 배너">
               <i data-lucide="chevron-left"></i>
             </button>
@@ -170,15 +176,32 @@
 
             <div class="hero-copy">
               <div class="hero-slides">
-                <article class="hero-slide is-active" data-hero-slide>
+                <article
+                  class="hero-slide is-active"
+                  data-hero-slide
+                  data-hero-theme="support"
+                  data-hero-scene-label="Your Success"
+                >
                   <h1>미래 사장님의<br />내일을 응원합니다 <span>♥</span></h1>
                   <p>창업 정보부터 컨설팅, 네트워킹까지<br />성공 창업의 모든 여정을 함께해요.</p>
                 </article>
-                <article class="hero-slide" data-hero-slide aria-hidden="true">
+                <article
+                  class="hero-slide"
+                  data-hero-slide
+                  data-hero-theme="plan"
+                  data-hero-scene-label="Start Smart"
+                  aria-hidden="true"
+                >
                   <h1>창업 준비,<br />오늘부터 가볍게 <span>✨</span></h1>
                   <p>아이디어 점검부터 사업계획서까지<br />처음 시작하는 순간을 더 선명하게 만들어요.</p>
                 </article>
-                <article class="hero-slide" data-hero-slide aria-hidden="true">
+                <article
+                  class="hero-slide"
+                  data-hero-slide
+                  data-hero-theme="network"
+                  data-hero-scene-label="Grow Together"
+                  aria-hidden="true"
+                >
                   <h1>좋은 사람들과<br />더 빠르게 성장해요 <span>↗</span></h1>
                   <p>예비 사장님들과 경험을 나누고<br />함께 성장하는 네트워크를 만들어보세요.</p>
                 </article>
@@ -199,7 +222,7 @@
                 <div class="laptop"></div>
                 <div class="cup"></div>
               </div>
-              <strong>Your<br />Success</strong>
+              <strong data-hero-scene-text>Your<br />Success</strong>
             </div>
             <div class="hero-dots" role="tablist" aria-label="배너 선택">
               <button class="active" type="button" data-hero-dot aria-label="1번 배너" aria-selected="true"></button>

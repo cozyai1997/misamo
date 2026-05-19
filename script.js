@@ -9,6 +9,7 @@ function initHeroCarousel() {
   const dots = Array.from(carousel.querySelectorAll("[data-hero-dot]"));
   const prevButton = carousel.querySelector("[data-hero-prev]");
   const nextButton = carousel.querySelector("[data-hero-next]");
+  const sceneText = carousel.querySelector("[data-hero-scene-text]");
   let currentIndex = Math.max(
     0,
     slides.findIndex((slide) => slide.classList.contains("is-active")),
@@ -16,6 +17,15 @@ function initHeroCarousel() {
 
   const setSlide = (nextIndex) => {
     currentIndex = (nextIndex + slides.length) % slides.length;
+    const activeSlide = slides[currentIndex];
+    const heroTheme = activeSlide?.dataset.heroTheme || "support";
+    const sceneLabel = activeSlide?.dataset.heroSceneLabel || "Your Success";
+
+    carousel.dataset.heroTheme = heroTheme;
+
+    if (sceneText) {
+      sceneText.innerHTML = sceneLabel.replace(" ", "<br />");
+    }
 
     slides.forEach((slide, index) => {
       const isActive = index === currentIndex;
