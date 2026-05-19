@@ -593,9 +593,80 @@ img {
   box-shadow: var(--soft-shadow);
 }
 
+.hero-panel:focus-visible {
+  outline: 3px solid rgba(240, 82, 117, 0.3);
+  outline-offset: 4px;
+}
+
+.hero-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #1b2234;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  box-shadow: 0 12px 26px rgba(31, 38, 63, 0.14);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color 180ms ease, background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.hero-nav svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 2.1;
+}
+
+.hero-nav:hover,
+.hero-nav:focus-visible {
+  color: #fff;
+  background: var(--pink);
+  box-shadow: 0 14px 30px rgba(240, 82, 117, 0.24);
+  outline: none;
+}
+
+.hero-nav:hover {
+  transform: translateY(-50%) scale(1.04);
+}
+
+.hero-prev {
+  left: 14px;
+}
+
+.hero-next {
+  right: 14px;
+}
+
 .hero-copy {
   position: relative;
   z-index: 2;
+  padding-left: 24px;
+}
+
+.hero-slides {
+  position: relative;
+  min-height: 166px;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(22px);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.hero-slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
 
 .hero-copy h1 {
@@ -817,14 +888,25 @@ img {
   transform: translateX(-50%);
 }
 
-.hero-dots span {
+.hero-dots button {
   width: 8px;
   height: 8px;
+  padding: 0;
   background: rgba(255, 255, 255, 0.88);
+  border: 0;
   border-radius: 50%;
+  cursor: pointer;
+  transition: background 180ms ease, transform 180ms ease;
 }
 
-.hero-dots span.active {
+.hero-dots button:hover,
+.hero-dots button:focus-visible {
+  background: var(--pink);
+  outline: none;
+  transform: scale(1.25);
+}
+
+.hero-dots button.active {
   background: #717789;
 }
 
@@ -1500,6 +1582,25 @@ img {
 
   .hero-copy p {
     font-size: 13px;
+  }
+
+  .hero-copy {
+    padding-left: 0;
+  }
+
+  .hero-nav {
+    top: auto;
+    bottom: 18px;
+    transform: none;
+  }
+
+  .hero-nav:hover {
+    transform: scale(1.04);
+  }
+
+  .hero-next {
+    right: auto;
+    left: 66px;
   }
 
   .hero-scene {
