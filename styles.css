@@ -1790,6 +1790,8 @@ img {
 }
 
 .recommend-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(40px, auto) minmax(48px, 1fr) auto auto;
   overflow: hidden;
   background: #fff;
   border: 1px solid var(--line);
@@ -1805,6 +1807,7 @@ img {
 
 .recommend-card > span {
   display: inline-flex;
+  justify-self: start;
   min-height: 24px;
   margin: -15px 12px 8px;
   padding: 0 10px;
