@@ -1,0 +1,193 @@
+/* EDIT: 왼쪽 사이드바입니다. 메뉴, 상담 CTA, 프로모션 카드 문양을 수정하세요. */
+
+.side-nav {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 42px;
+  padding: 0 16px;
+  color: #293044;
+  border-radius: 9px;
+  transition: color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.nav-item .lucide-icon,
+.menu-group .lucide-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.7;
+}
+
+.nav-item span {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nav-item:hover,
+.nav-item:focus-visible,
+.nav-item.active {
+  color: var(--pink);
+  background: linear-gradient(90deg, #ffe8ef, #fff4f7);
+  outline: none;
+}
+
+.nav-item:hover,
+.consult-card:hover,
+.menu-group a:hover {
+  transform: translateX(2px);
+}
+
+.consult-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 66px;
+  margin: 20px 0 22px;
+  padding: 13px 18px;
+  color: var(--pink);
+  background: linear-gradient(135deg, #ffe8ee 0%, #fff1f4 48%, #fff8f9 100%);
+  border-radius: 10px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.consult-card:hover,
+.consult-card:focus-visible {
+  box-shadow: 0 10px 24px rgba(240, 82, 117, 0.14);
+  outline: none;
+}
+
+.consult-card strong,
+.consult-card small {
+  display: block;
+}
+
+.consult-card strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.consult-card small {
+  margin-top: 4px;
+  color: #2b3143;
+  font-size: 12px;
+}
+
+.consult-card .lucide-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.menu-group {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-group p {
+  margin: 0 0 2px;
+  color: #252b3d;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.menu-group a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+  color: #3c4355;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.menu-group a:hover,
+.menu-group a:focus-visible {
+  color: var(--pink);
+  outline: none;
+}
+
+.promo-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 30px;
+  padding: 26px 18px 22px;
+  background:
+    radial-gradient(circle at 74% 62%, rgba(113, 136, 219, 0.23), transparent 32%),
+    linear-gradient(145deg, #edf3ff 0%, #f3ecff 100%);
+  border: 1px solid #dfe4ff;
+  border-radius: 10px;
+  box-shadow: var(--soft-shadow);
+}
+
+[data-sidebar-view][hidden] {
+  display: none;
+}
+
+.promo-card h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #23345d;
+  font-size: 19px;
+  line-height: 1.45;
+}
+
+.promo-card p {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 14px;
+  color: #57617b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+/* EDIT: 프로모 카드 이미지를 교체할 때는 index.html의 img src만 바꾸세요. */
+.promo-media {
+  position: relative;
+  z-index: 0;
+  width: 128px;
+  height: 96px;
+  margin: -2px 0 14px auto;
+  pointer-events: none;
+}
+
+.promo-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.explore-promo-card {
+  background:
+    radial-gradient(circle at 72% 63%, rgba(114, 136, 219, 0.18), transparent 34%),
+    linear-gradient(145deg, #edf4ff 0%, #f1ebff 100%);
+}
+
+.explore-promo-card .promo-media {
+  width: 154px;
+  height: 124px;
+  margin-top: -2px;
+  margin-bottom: 8px;
+}
+
+.post-promo-card {
+  background:
+    radial-gradient(circle at 76% 66%, rgba(240, 82, 117, 0.16), transparent 34%),
+    linear-gradient(145deg, #edf4ff 0%, #f2edff 100%);
+}
+
+.post-promo-card .promo-media {
+  width: 126px;
+  height: 102px;
+  margin-top: 2px;
+  margin-bottom: 14px;
+}

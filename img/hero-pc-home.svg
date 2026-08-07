@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 455 250" role="img" aria-label="">
+  <!-- EDIT: PC home banner artwork. Replace this SVG to change the desktop banner image. -->
+  <defs>
+    <linearGradient id="homeWindow" x1="205" y1="22" x2="292" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ecf7ff"/>
+      <stop offset="1" stop-color="#f8dfe7"/>
+    </linearGradient>
+    <linearGradient id="homeDesk" x1="32" y1="205" x2="432" y2="246" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe9e6"/>
+      <stop offset="1" stop-color="#fff3ee" stop-opacity=".86"/>
+    </linearGradient>
+    <linearGradient id="homeLaptop" x1="177" y1="159" x2="256" y2="212" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#dce9fb"/>
+      <stop offset="1" stop-color="#8294bb"/>
+    </linearGradient>
+    <filter id="homeGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff61c0" flood-opacity=".88"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#ff61c0" flood-opacity=".55"/>
+    </filter>
+    <filter id="homeShadow" x="-25%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="15" stdDeviation="13" flood-color="#7f5784" flood-opacity=".16"/>
+    </filter>
+  </defs>
+  <rect x="35" y="205" width="392" height="45" rx="7" fill="url(#homeDesk)"/>
+  <g filter="url(#homeShadow)">
+    <path d="M223 35h42c25 0 45 20 45 45v86H178V80c0-25 20-45 45-45z" fill="url(#homeWindow)" stroke="#c79bbb" stroke-width="9"/>
+    <path d="M244 35v131M178 101h132" stroke="#c79bbb" stroke-width="5" opacity=".62"/>
+  </g>
+  <g>
+    <path d="M70 126c9-3 22-1 31 4-11 6-25 7-41 3 2-3 5-5 10-7z" fill="#789772"/>
+    <path d="M93 146c12-3 27-1 37 6-13 6-29 6-47 2 2-4 5-7 10-8z" fill="#6f8e67"/>
+    <path d="M102 110c10-2 22 1 31 8-11 5-24 4-39-2 1-3 4-5 8-6z" fill="#789772"/>
+    <path d="M107 113c-12 23-15 47-13 78" stroke="#879f7b" stroke-width="4" stroke-linecap="round"/>
+    <rect x="74" y="188" width="34" height="23" rx="7" fill="#d7a998"/>
+  </g>
+  <g>
+    <path d="M45 67h54v58H45z" fill="#fff7ec"/>
+    <path d="M72 3v64" stroke="#b77e96" stroke-width="2" opacity=".6"/>
+    <path d="M45 67c0-17 11-31 27-31s27 14 27 31v14H45V67z" fill="#fff7ec"/>
+    <path d="M45 82h54v43H45z" fill="#e9c8b7"/>
+  </g>
+  <g>
+    <rect x="172" y="161" width="91" height="63" rx="9" fill="#a28fa5"/>
+    <rect x="181" y="169" width="73" height="48" rx="4" fill="url(#homeLaptop)"/>
+    <path d="M154 224h126l-9 11H164z" fill="#9a88a2"/>
+  </g>
+  <g>
+    <rect x="315" y="178" width="36" height="43" rx="9" fill="#f2beb0"/>
+    <path d="M351 188h7c9 0 15 7 15 15s-6 15-15 15h-7" fill="none" stroke="#e7b5a9" stroke-width="5"/>
+  </g>
+  <text x="292" y="73" fill="#fff4ff" filter="url(#homeGlow)" font-family="Comic Sans MS, Comic Sans, cursive" font-size="35" line-height="1">
+    <tspan x="292" dy="0">Your</tspan>
+    <tspan x="292" dy="35">Success</tspan>
+  </text>
+</svg>
