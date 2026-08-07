@@ -1,0 +1,45 @@
+/* EDIT: 로컬 SVG 아이콘 연결표입니다. icon 폴더에 파일을 추가하면 .icon-name도 여기에 추가하세요. */
+
+.lucide-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  background: var(--icon) center / contain no-repeat;
+}
+
+.icon-arrow-right { --icon: url("../icon/arrow-right.svg"); }
+.icon-bell { --icon: url("../icon/bell.svg"); }
+.icon-bookmark { --icon: url("../icon/bookmark.svg"); }
+.icon-briefcase { --icon: url("../icon/briefcase.svg"); }
+.icon-building-2 { --icon: url("../icon/building-2.svg"); }
+.icon-calendar-days { --icon: url("../icon/calendar-days.svg"); }
+.icon-chevron-down { --icon: url("../icon/chevron-down.svg"); }
+.icon-chevron-right { --icon: url("../icon/chevron-right.svg"); }
+.icon-clipboard-list { --icon: url("../icon/clipboard-list.svg"); }
+.icon-compass { --icon: url("../icon/compass.svg"); }
+.icon-flame { --icon: url("../icon/flame.svg"); }
+.icon-folder { --icon: url("../icon/folder.svg"); }
+.icon-graduation-cap { --icon: url("../icon/graduation-cap.svg"); }
+.icon-heart { --icon: url("../icon/heart.svg"); }
+.icon-heart-red { --icon: url("../icon/heart-red.svg"); }
+.icon-home { --icon: url("../icon/home.svg"); }
+.icon-lightbulb { --icon: url("../icon/lightbulb.svg"); }
+.icon-list { --icon: url("../icon/list.svg"); }
+.icon-map-pin { --icon: url("../icon/map-pin.svg"); }
+.icon-megaphone { --icon: url("../icon/megaphone.svg"); }
+.icon-message-circle { --icon: url("../icon/message-circle.svg"); }
+.icon-more-horizontal { --icon: url("../icon/more-horizontal.svg"); }
+.icon-scale { --icon: url("../icon/scale.svg"); }
+.icon-search { --icon: url("../icon/search.svg"); }
+.icon-send { --icon: url("../icon/send.svg"); }
+.icon-settings-2 { --icon: url("../icon/settings-2.svg"); }
+.icon-square-plus { --icon: url("../icon/square-plus.svg"); }
+.icon-star { --icon: url("../icon/star.svg"); }
+.icon-store { --icon: url("../icon/store.svg"); }
+.icon-trending-up { --icon: url("../icon/trending-up.svg"); }
+.icon-trophy { --icon: url("../icon/trophy.svg"); }
+.icon-user { --icon: url("../icon/user.svg"); }
+.icon-users { --icon: url("../icon/users.svg"); }
+.icon-wallet { --icon: url("../icon/wallet.svg"); }
+.icon-x { --icon: url("../icon/x.svg"); }

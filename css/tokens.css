@@ -1,0 +1,17 @@
+/* EDIT: 색상, 그림자, 공통 테마 값은 여기서 먼저 수정하세요. */
+
+:root {
+  --bg: #fbfbfd;
+  --surface: #ffffff;
+  --surface-soft: #f8f5fa;
+  --ink: #151928;
+  --muted: #687083;
+  --line: #e9e9f0;
+  --pink: #f05275;
+  --pink-soft: #fff0f4;
+  --lavender: #a98cf5;
+  --blue: #7188db;
+  --navy: #182033;
+  --shadow: 0 18px 48px rgba(31, 38, 63, 0.08);
+  --soft-shadow: 0 10px 30px rgba(31, 38, 63, 0.07);
+}
