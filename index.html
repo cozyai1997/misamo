@@ -11,6 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./comments.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -299,9 +300,9 @@
                     <i data-lucide="heart"></i>
                     <span data-like-count>124</span>
                   </button>
-                  <button type="button" class="action-button">
+                  <button type="button" class="action-button" data-comments-open aria-label="댓글 보기" aria-haspopup="dialog">
                     <i data-lucide="message-circle"></i>
-                    <span>23</span>
+                    <span data-comments-count>23</span>
                   </button>
                   <button type="button" class="action-button">
                     <i data-lucide="send"></i>
@@ -654,6 +655,7 @@
     </nav>
 
     <script src="./script.js"></script>
+    <script src="./comments.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" onload="window.createMisamoIcons && window.createMisamoIcons()"></script>
   </body>
 </html>
