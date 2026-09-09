@@ -58,6 +58,8 @@ body.comments-open { overflow: hidden; }
 .comment-reply-form { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
 .comment-reply-form label { width: 100%; color: var(--pink); font-size: 11px; }
 .comment-reply-form input { flex: 1; }
+.comment-edit-form textarea { width: 100%; min-width: 0; resize: vertical; min-height: 80px; padding: 10px 12px; border: 1px solid #ddddea; border-radius: 7px; color: var(--ink); background: white; font: inherit; font-size: 13px; line-height: 1.8; }
+.comment-edit-form textarea:focus { outline: 2px solid var(--pink); outline-offset: 2px; }
 .comment-reply-form .comment-cancel { border: 0; background: transparent; font: inherit; font-size: 12px; cursor: pointer; color: var(--muted); }
 .comments-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 600px) {

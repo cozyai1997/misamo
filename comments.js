@@ -67,6 +67,11 @@ function initComments() {
     item.querySelector('img').src = avatarUrl;
     item.querySelector('strong').textContent = comment.author;
     item.querySelector('small').textContent = comment.time;
+    if (comment.edited) {
+      const edited = document.createElement('small');
+      edited.className = 'comment-edited'; edited.textContent = '수정됨';
+      item.querySelector('.comment-meta').append(edited);
+    }
     if (comment.author === authorName) {
       const badge = document.createElement('span'); badge.className = 'comment-author-badge'; badge.textContent = '작성자';
       item.querySelector('.comment-meta').append(badge);
@@ -85,6 +90,12 @@ function initComments() {
       like.querySelector('span').textContent = String(comment.likes);
     });
     item.querySelector('[data-reply]').addEventListener('click', () => openReply(item, comment, root || comment));
+    if (comment.author === authorName) {
+      const edit = document.createElement('button');
+      edit.type = 'button'; edit.dataset.commentEdit = ''; edit.textContent = '수정';
+      edit.addEventListener('click', () => openEdit(item, comment));
+      item.querySelector('.comment-actions').append(edit);
+    }
     (comment.replies || []).forEach(reply => item.querySelector('.comment-replies').append(renderItem(reply, comment)));
     return item;
   }
@@ -108,6 +119,32 @@ function initComments() {
       total++; updateTotals(); render(); input.focus(); status.textContent = '답글을 등록했습니다.';
     });
     item.querySelector('.comment-content').append(form); field.focus();
+  }
+  function openEdit(item, comment) {
+    if (comment.author !== authorName) return;
+    replyForm?.remove();
+    const form = document.createElement('form');
+    replyForm = form; form.className = 'comment-reply-form comment-edit-form';
+    form.innerHTML = '<label>댓글 수정</label><textarea aria-label="댓글 수정 내용" maxlength="2000" required rows="3"></textarea><button class="comment-submit" type="submit" disabled>저장</button><button class="comment-cancel" type="button">취소</button>';
+    const field = form.querySelector('textarea');
+    const save = form.querySelector('[type="submit"]');
+    field.value = comment.text;
+    field.addEventListener('input', () => {
+      save.disabled = !field.value.trim() || field.value.trim() === comment.text;
+    });
+    form.querySelector('[type="button"]').addEventListener('click', () => {
+      form.remove(); item.querySelector('[data-comment-edit]').focus();
+    });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const value = field.value.trim();
+      if (comment.author !== authorName || !value || value === comment.text) return;
+      comment.text = value; comment.edited = true;
+      render();
+      list.querySelector(`[data-comment-id="${comment.id}"] [data-comment-edit]`).focus();
+      status.textContent = '댓글을 수정했습니다.';
+    });
+    item.querySelector('.comment-actions').after(form); field.focus();
   }
   input.addEventListener('input', () => { submit.disabled = !input.value.trim(); });
   compose.addEventListener('submit', event => {
