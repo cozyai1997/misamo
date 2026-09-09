@@ -1179,6 +1179,19 @@ img {
   outline: none;
 }
 
+.action-button[data-like-button] {
+  color: var(--pink);
+}
+
+.action-button[data-like-button] svg {
+  fill: none;
+  transition: fill 180ms ease;
+}
+
+.action-button[data-like-button][aria-pressed="true"] svg {
+  fill: currentColor;
+}
+
 .action-button:hover {
   transform: translateY(-1px);
 }

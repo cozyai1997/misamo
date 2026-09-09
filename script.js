@@ -119,6 +119,25 @@ function initHeroCarousel() {
   setSlide(currentIndex);
 }
 
+function initLikeButtons() {
+  document.querySelectorAll("[data-like-button]").forEach((button) => {
+    const count = button.querySelector("[data-like-count]");
+    if (!count) return;
+
+    button.addEventListener("click", () => {
+      const liked = button.getAttribute("aria-pressed") !== "true";
+      const currentCount = Number(count.textContent);
+      if (!Number.isFinite(currentCount)) return;
+
+      button.setAttribute("aria-pressed", String(liked));
+      button.setAttribute("aria-label", liked ? "좋아요 취소" : "좋아요");
+      button.classList.toggle("liked", liked);
+      count.textContent = String(currentCount + (liked ? 1 : -1));
+    });
+  });
+}
+
+initLikeButtons();
 initViewNavigation();
 initHeroCarousel();
 createMisamoIcons();
