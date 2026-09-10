@@ -45,6 +45,36 @@ function insertBetweenWords(w) {
   return editor;
 }
 
+test('editor cards block navigation and expose a dismissible link menu without changing saved content', () => {
+  const dom=openComposer();const w=dom.window;
+  try {
+    const editor=w.document.querySelector('[data-post-editor]');
+    editor.innerHTML=w.MisamoContent.renderHtml(w.MisamoContent.linkCard({url:'https://example.com/',title:'Card'}),[]);
+    const card=editor.querySelector('a');
+    const saved=w.MisamoContent.sanitizeHtml(editor.innerHTML);
+    for(const type of ['click','auxclick']) {
+      const event=new w.MouseEvent(type,{bubbles:true,cancelable:true,button:type==='click'?0:1});
+      card.dispatchEvent(event);assert.equal(event.defaultPrevented,true);
+    }
+    const context=new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:900,clientY:700});
+    card.querySelector('span').dispatchEvent(context);assert.equal(context.defaultPrevented,true);
+    const menu=w.document.querySelector('[data-link-context-menu]');
+    assert.ok(menu && !menu.hidden);
+    const link=menu.querySelector('a');assert.equal(link.textContent,'링크 보기');assert.equal(link.href,'https://example.com/');assert.equal(link.rel,'noopener noreferrer');
+    assert.equal(w.MisamoContent.sanitizeHtml(editor.innerHTML),saved);
+    w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+    assert.equal(menu.hidden,true);
+    const textContext=new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true});
+    editor.dispatchEvent(textContext);assert.equal(textContext.defaultPrevented,false);
+    card.dispatchEvent(new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true}));
+    w.document.body.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true}));assert.equal(menu.hidden,true);
+    const preview=w.document.createElement('div');preview.innerHTML=card.outerHTML;w.document.body.append(preview);
+    const normalClick=new w.MouseEvent('click',{bubbles:true,cancelable:true});
+    preview.querySelector('a').addEventListener('click',e=>{assert.equal(e.defaultPrevented,false);e.preventDefault();});
+    preview.querySelector('a').dispatchEvent(normalClick);
+  }finally{w.close();}
+});
+
 test('a standalone pasted URL becomes a persistent card with undo and redo', async () => {
   const dom=openComposer();const w=dom.window;
   try {

@@ -949,24 +949,28 @@
   }
 }
 .posting-editor a.posting-link-card, .post-rich-body a.posting-link-card, [data-preview-body] a.posting-link-card, a.posting-link-card {
-  display:flex; width:100%; max-width:680px; min-height:118px; margin:18px 0;
+  display:flex; width:100%; max-width:480px; min-height:88px; margin:12px 0;
   border:1px solid #e3e5e8; background:#fff; color:#182132; text-decoration:none;
   box-shadow:0 2px 3px #17213708; overflow:hidden; text-align:left; font-style:normal;
 }
 .posting-link-card .posting-link-thumbnail {
-  display:block; flex:0 0 148px; width:148px; height:138px; max-width:148px;
+  display:block; flex:0 0 88px; width:88px; height:88px; max-width:88px;
   margin:0; border-radius:0; object-fit:cover;
 }
-.posting-link-info {display:flex; flex:1; min-width:0; flex-direction:column; justify-content:center; gap:8px; padding:18px 22px;}
-.posting-link-title {font-size:17px; line-height:1.4; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.posting-link-description {font-size:14px; line-height:1.5; font-weight:400; color:#9299a5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.posting-link-info {display:flex; flex:1; min-width:0; flex-direction:column; justify-content:center; gap:4px; padding:12px 14px;}
+.posting-link-title {font-size:14px; line-height:1.4; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.posting-link-description {font-size:12px; line-height:1.5; font-weight:400; color:#9299a5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .posting-link-description:empty {display:none;}
-.posting-link-domain {font-size:14px; line-height:1.4; font-weight:400; color:#20a65b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.posting-link-domain {font-size:12px; line-height:1.4; font-weight:400; color:#20a65b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .posting-link-card:focus-visible {outline:1px solid #9ba5b1; outline-offset:2px;}
 @media(max-width:600px) {
-  .posting-link-card {min-height:96px; margin:14px 0;}
-  .posting-link-card .posting-link-thumbnail {flex-basis:88px; width:88px; max-width:88px; height:104px;}
-  .posting-link-info {padding:12px; gap:5px;}
+  .posting-link-card .posting-link-thumbnail {flex-basis:76px; width:76px; max-width:76px; height:88px;}
+  .posting-link-info {padding:10px; gap:4px;}
   .posting-link-title {font-size:14px;}
   .posting-link-description,.posting-link-domain {font-size:12px;}
 }
+.posting-editor a.posting-link-card {cursor:default;}
+.posting-link-menu {position:fixed; z-index:10000; min-width:132px; padding:4px; background:#fff; border:1px solid #e4e6eb; border-radius:7px; box-shadow:0 4px 16px #18213218;}
+.posting-link-menu[hidden] {display:none;}
+.posting-link-menu a {display:block; padding:9px 12px; border-radius:4px; color:#293142; font-size:13px; text-decoration:none;}
+.posting-link-menu a:hover,.posting-link-menu a:focus-visible {background:#f3f4f7; outline:none;}

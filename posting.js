@@ -742,6 +742,49 @@
     rememberEditorRange();
     imageInput.click();
   });
+  const linkMenu=document.createElement('div');
+  linkMenu.dataset.linkContextMenu='';linkMenu.className='posting-link-menu';
+  linkMenu.setAttribute('role','menu');linkMenu.setAttribute('aria-label','링크 메뉴');linkMenu.hidden=true;
+  const viewLink=document.createElement('a');viewLink.textContent='링크 보기';
+  viewLink.setAttribute('role','menuitem');viewLink.target='_blank';viewLink.rel='noopener noreferrer';
+  linkMenu.append(viewLink);document.body.append(linkMenu);
+  let contextCard=null;
+  function closeLinkMenu() {linkMenu.hidden=true;contextCard=null;viewLink.removeAttribute('href');}
+  function editorCard(target) {
+    const card=target instanceof Element?target.closest('a[data-link-card="1"]'):null;
+    return card && editor.contains(card)?card:null;
+  }
+  ['click','auxclick'].forEach(type=>editor.addEventListener(type,event=>{
+    if(editorCard(event.target)) event.preventDefault();
+  }));
+  editor.addEventListener('contextmenu',event=>{
+    const card=editorCard(event.target);closeLinkMenu();if(!card) return;
+    let url;try {url=new URL(card.href);if(url.protocol!=='https:' || url.username || url.password) return;}catch(_){return;}
+    event.preventDefault();contextCard=card;viewLink.href=url.href;linkMenu.hidden=false;
+    const rect=card.getBoundingClientRect();
+    const x=event.clientX || rect.left;const y=event.clientY || rect.bottom;
+    linkMenu.style.left=`${Math.max(8,Math.min(x,window.innerWidth-linkMenu.offsetWidth-8))}px`;
+    linkMenu.style.top=`${Math.max(8,Math.min(y,window.innerHeight-linkMenu.offsetHeight-8))}px`;
+    viewLink.focus({preventScroll:true});
+  });
+  viewLink.addEventListener('click',event=>{
+    if(!contextCard || !editor.contains(contextCard)) {event.preventDefault();closeLinkMenu();return;}
+    // Let the genuine link click open the new tab before removing its destination.
+    window.setTimeout(closeLinkMenu,0);
+  });
+  document.addEventListener('pointerdown',event=>{if(!linkMenu.contains(event.target)) closeLinkMenu();},true);
+  document.addEventListener('keydown',event=>{
+    if(linkMenu.hidden) return;
+    if(event.key==='Escape') {event.preventDefault();const card=contextCard;closeLinkMenu();card?.focus({preventScroll:true});}
+    else if(event.key==='Tab') closeLinkMenu();
+  });
+  document.addEventListener('scroll',closeLinkMenu,true);
+  window.addEventListener('resize',closeLinkMenu);
+  window.addEventListener('blur',closeLinkMenu);
+  window.addEventListener('hashchange',closeLinkMenu);
+  window.addEventListener('misamo:view',closeLinkMenu);
+  editor.addEventListener('input',closeLinkMenu);
+
   function standaloneLink(text, range) {
     if(!range.collapsed || /\s/.test(text.trim())) return '';
     try {
