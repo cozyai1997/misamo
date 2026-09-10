@@ -42,7 +42,11 @@ function initViewNavigation() {
     });
 
     window.history.replaceState(null, "", `#${nextView}`);
+    document.body.classList.toggle('is-writing', nextView === 'write');
+    window.dispatchEvent(new CustomEvent('misamo:view', { detail: nextView }));
   };
+
+  window.misamoNavigate = setView;
 
   links.forEach((link) => {
     link.addEventListener("click", (event) => {
@@ -120,20 +124,31 @@ function initHeroCarousel() {
 }
 
 function initLikeButtons() {
-  document.querySelectorAll("[data-like-button]").forEach((button) => {
-    const count = button.querySelector("[data-like-count]");
+  function display(button, state) {
+    button.setAttribute('aria-pressed', String(state.liked));
+    button.setAttribute('aria-label', state.liked ? '좋아요 취소' : '좋아요');
+    button.classList.toggle('liked', state.liked);
+    button.querySelector('[data-like-count]').textContent = String(state.count);
+  }
+  document.querySelectorAll('.post-card [data-like-button]').forEach(button => {
+    const id = button.closest('.post-card').dataset.postId;
+    if (id && window.MisamoStore) {
+      try { display(button, window.MisamoStore.getPostLike(id)); } catch (_) { /* Keep the visible count if storage is unavailable. */ }
+    }
+  });
+  document.addEventListener('click', event => {
+    const button = event.target.closest('.post-card [data-like-button]');
+    if (!button) return;
+    const count = button.querySelector('[data-like-count]');
     if (!count) return;
-
-    button.addEventListener("click", () => {
       const liked = button.getAttribute("aria-pressed") !== "true";
       const currentCount = Number(count.textContent);
       if (!Number.isFinite(currentCount)) return;
-
-      button.setAttribute("aria-pressed", String(liked));
-      button.setAttribute("aria-label", liked ? "좋아요 취소" : "좋아요");
-      button.classList.toggle("liked", liked);
-      count.textContent = String(currentCount + (liked ? 1 : -1));
-    });
+      const id = button.closest('.post-card').dataset.postId;
+      try {
+        const state = id && window.MisamoStore ? window.MisamoStore.setPostLike(id, liked) : { liked, count: currentCount + (liked ? 1 : -1) };
+        display(button, state);
+      } catch (error) { window.alert(error.message); }
   });
 }
 

@@ -26,9 +26,13 @@ body.comments-open { overflow: hidden; }
 .comments-post h3 { margin: 0 0 14px; font-size: 15px; line-height: 1.6; }
 .comments-post p { margin: 0; font-size: 13px; line-height: 1.85; }
 .comments-post > img { width: 100%; height: 136px; object-fit: cover; border-radius: 10px; }
+.comments-post:has(> img[hidden]) { grid-template-columns: minmax(0, 1fr); }
 .comments-metrics { display: flex; gap: 24px; padding: 8px 0 17px; align-items: center; }
 .comments-metrics > span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
 .comments-metrics svg { width: 20px; height: 20px; }
+.comments-metrics [data-dialog-like] { color: var(--pink); }
+.comments-metrics [data-dialog-like] svg { fill: none; transition: fill 180ms ease; }
+.comments-metrics [data-dialog-like][aria-pressed="true"] svg { fill: currentColor; }
 .comments-compose { display: flex; gap: 10px; align-items: center; padding: 16px 26px; border-top: 1px solid var(--line); }
 .comments-compose input, .comment-reply-form input {
   width: 100%; min-width: 0; min-height: 40px; padding: 10px 12px;

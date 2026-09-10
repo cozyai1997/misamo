@@ -11,7 +11,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./comments.css" />
+    <link rel="stylesheet" href="./comments.css?v=20260910-prototype" />
+    <link rel="stylesheet" href="./posting.css?v=20260910-prototype" />
   </head>
   <body>
     <div class="app-shell">
@@ -30,7 +31,7 @@
         </label>
 
         <nav class="top-actions" aria-label="상단 메뉴">
-          <button class="icon-button" type="button" aria-label="새 글">
+          <button class="icon-button" type="button" aria-label="새 글" data-view-link data-view-target="write">
             <i data-lucide="square-plus"></i>
           </button>
           <button class="icon-button has-badge" type="button" aria-label="알림">
@@ -258,7 +259,7 @@
               </button>
             </div>
 
-            <article class="post-card">
+            <article class="post-card" data-post-id="demo-cafe" data-author-id="startup-hello">
               <header class="post-head">
                 <div>
                   <img
@@ -648,14 +649,16 @@
 
     <nav class="mobile-nav" aria-label="모바일 메뉴">
       <a class="active" href="#home" data-view-link data-view-target="home"><i data-lucide="home"></i><span>홈</span></a>
-      <a href="#"><i data-lucide="list"></i><span>피드</span></a>
+      <a href="#write" data-view-link data-view-target="write"><i data-lucide="square-plus"></i><span>글쓰기</span></a>
       <a href="#explore" data-view-link data-view-target="explore"><i data-lucide="compass"></i><span>탐색</span></a>
       <a href="#"><i data-lucide="bell"></i><span>알림</span></a>
       <a href="#"><i data-lucide="user"></i><span>프로필</span></a>
     </nav>
 
-    <script src="./script.js"></script>
-    <script src="./comments.js"></script>
+    <script src="./post-store.js?v=20260910-prototype"></script>
+    <script src="./posting.js?v=20260910-prototype"></script>
+    <script src="./script.js?v=20260910-prototype"></script>
+    <script src="./comments.js?v=20260910-prototype"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" onload="window.createMisamoIcons && window.createMisamoIcons()"></script>
   </body>
 </html>
