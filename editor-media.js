@@ -3,6 +3,8 @@
   window.createMisamoEditor = function ({ editor, toolbar, onChange, onFiles, onDelete, onBeforeChange = () => {} }) {
     const doc = editor.ownerDocument, win = doc.defaultView, surface = editor.parentElement;
     let selected = null, savedRange = null, dragging = null, resizing = null;
+    const mediaSelector='img[data-image-id],a[data-link-card="1"]';
+    const mediaId=node=>node?.dataset.linkCard==='1'?`card:${node.dataset.cardId}`:node?.dataset.imageId || '';
     const frame = doc.createElement('div');
     frame.className = 'media-selection'; frame.hidden = true;
     frame.innerHTML = '<div class="media-actions"><span data-media-size></span></div>' +
@@ -26,7 +28,7 @@
     }
     function select(image) { selected = image; updateFrame(); syncAlignment(); }
     function refresh() {
-      editor.querySelectorAll('img[data-image-id]').forEach(image => { image.draggable = true; image.tabIndex = 0; });
+      editor.querySelectorAll(mediaSelector).forEach(image => { if(image.dataset.linkCard==='1' && !image.dataset.cardId) image.dataset.cardId=win.crypto.randomUUID();image.draggable = true; image.tabIndex = 0; });
       updateFrame();
     }
     function rememberRange() {
@@ -100,7 +102,7 @@
         const p=doc.caretPositionFromPoint(event.clientX,event.clientY);
         if(p) { range=doc.createRange();range.setStart(p.offsetNode,p.offset);range.collapse(true); }
       }
-      const target = event.target.closest?.('img[data-image-id]');
+      const target = event.target.closest?.(mediaSelector);
       if (target && editor.contains(target)) {
         range=doc.createRange();const r=target.getBoundingClientRect();
         if(event.clientY < r.top+r.height/2) range.setStartBefore(target);else range.setStartAfter(target);
@@ -139,12 +141,12 @@
     }
     function supportsDrop(event) { return !!dragging || Array.from(event.dataTransfer?.types || []).includes('Files'); }
     editor.addEventListener('click', event => {
-      const image=event.target.closest?.('img[data-image-id]');
+      const image=event.target.closest?.(mediaSelector);
       if(image) select(image);else clearSelection();
     });
-    editor.addEventListener('focusin', event => { if(event.target.matches?.('img[data-image-id]')) select(event.target); });
+    editor.addEventListener('focusin', event => { if(event.target.matches?.(mediaSelector)) select(event.target); });
     editor.addEventListener('pointerdown',event=>{
-      if(event.pointerType==='touch' && !event.target.closest?.('img[data-image-id]')) clearSelection();
+      if(event.pointerType==='touch' && !event.target.closest?.(mediaSelector)) clearSelection();
     });
     doc.addEventListener('pointerdown', event => { if(!editor.contains(event.target) && !frame.contains(event.target) && !toolbar.contains(event.target)) clearSelection(); });
     doc.addEventListener('selectionchange',rememberRange);
@@ -156,14 +158,14 @@
       if(editor.getAttribute('contenteditable')==='false') return;
       if(event.key==='Escape') clearSelection();
       if (/^(Arrow|Home|End|Page)/.test(event.key) || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase()==='a')) clearSelection();
-      if(selected && ['Delete','Backspace'].includes(event.key)) {event.preventDefault();onBeforeChange();const id=selected.dataset.imageId;clearSelection();onDelete(id);}
+      if(selected && ['Delete','Backspace'].includes(event.key)) {event.preventDefault();onBeforeChange();const id=mediaId(selected);clearSelection();onDelete(id);}
     });
     editor.addEventListener('dragstart', event=>{
       if(editor.getAttribute('contenteditable')==='false') {event.preventDefault();return;}
-      const image=event.target.closest?.('img[data-image-id]');if(!image) return;
+      const image=event.target.closest?.(mediaSelector);if(!image) return;
       onBeforeChange();
       dragging=image;select(image);image.classList.add('is-dragging');surface.classList.add('media-dragging');
-      event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('application/x-misamo-image',image.dataset.imageId);
+      event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('application/x-misamo-image',mediaId(image));
     });
     editor.addEventListener('dragover',event=>{
       if(editor.getAttribute('contenteditable')==='false') {event.preventDefault();return;}
@@ -176,7 +178,7 @@
       event.preventDefault();indicator.hidden=true;const range=dropRange(event);
       if(dragging && editor.contains(dragging)) {
         const image=dragging;finishDrag();
-        if(range.startContainer===image) return;
+        if(range.startContainer===image || image.contains(range.startContainer)) return;
         image.remove();range.insertNode(image);
         range.setStartAfter(image);range.collapse(true);
         editor.focus({preventScroll:true});win.getSelection().removeAllRanges();win.getSelection().addRange(range);
@@ -203,7 +205,9 @@
       const dx=(event.clientX-r.x)*(r.corner.includes('w')?-1:1),dy=(event.clientY-r.y)*(r.corner.includes('n')?-1:1)*r.ratio;
       const delta=Math.abs(dx)>=Math.abs(dy)?dx:dy;
       const width=Math.round(Math.max(10,Math.min(100,(r.width+delta)/r.max*100))*100)/100;
-      r.image.dataset.imageWidth=String(width);r.image.style.width=`${width}%`;r.image.style.height='auto';updateFrame();
+      r.image.dataset.imageWidth=String(width);r.image.style.width=`${width}%`;r.image.style.height='auto';
+      if(r.image.dataset.linkCard==='1') r.image.style.maxWidth='100%';
+      updateFrame();
     });
     function finishResize() {if(!resizing)return;resizing=null;surface.classList.remove('media-resizing');onChange();}
     doc.addEventListener('pointerup',finishResize);doc.addEventListener('pointercancel',finishResize);
@@ -212,6 +216,6 @@
     win.addEventListener('resize',updateFrame);win.addEventListener('scroll',updateFrame,true);
     win.addEventListener('misamo:view',()=>{clearSelection();finishDrag();});
     refresh();syncAlignment();
-    return { refresh, clearSelection, select, selectedId: () => selected?.dataset.imageId || '', isInteracting: () => !!(dragging || resizing) };
+    return { refresh, clearSelection, select, selectedId: () => selected?mediaId(selected):'', isInteracting: () => !!(dragging || resizing) };
   };
 })();

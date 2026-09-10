@@ -142,6 +142,10 @@
     onChange: () => { rememberEditorRange(); renderImages(); recordEdit(); scheduleAutosave(); },
     onFiles: (files, range) => handleImageFiles(files, range),
     onDelete: (id) => {
+      if(id.startsWith('card:')) {
+        editor.querySelectorAll('a[data-card-id]').forEach(node=>{if(`card:${node.dataset.cardId}`===id) node.remove();});
+        renderImages();recordEdit();scheduleAutosave();return;
+      }
       editor.querySelectorAll('img[data-image-id]').forEach(node => { if(node.dataset.imageId === id) node.remove(); });
       images = images.filter(image => image.id !== id);
       if(coverId === id) coverId = images[0]?.id || '';
@@ -211,7 +215,7 @@
       images=state.images.slice();coverId=state.coverId;
       mediaEditor.clearSelection();editor.innerHTML=postContent.renderHtml(state.html,images);
       editor.focus({preventScroll:true});restoreBookmark(state.selection);renderImages();
-      const selected=Array.from(editor.querySelectorAll('img[data-image-id]')).find(img=>img.dataset.imageId===state.selectedId);
+      const selected=Array.from(editor.querySelectorAll('img[data-image-id],a[data-card-id]')).find(img=>(img.dataset.cardId?`card:${img.dataset.cardId}`:img.dataset.imageId)===state.selectedId);
       if(selected) mediaEditor.select(selected);
       lastEditKind='';updateHistoryButtons();scheduleAutosave();
     } finally {restoringHistory=false;}
@@ -748,6 +752,7 @@
   const viewLink=document.createElement('a');viewLink.textContent='링크 보기';
   viewLink.setAttribute('role','menuitem');viewLink.target='_blank';viewLink.rel='noopener noreferrer';
   linkMenu.append(viewLink);document.body.append(linkMenu);
+  const editLink=document.createElement('button');editLink.type='button';editLink.textContent='링크 수정';editLink.setAttribute('role','menuitem');linkMenu.append(editLink);
   let contextCard=null;
   function closeLinkMenu() {linkMenu.hidden=true;contextCard=null;viewLink.removeAttribute('href');}
   function editorCard(target) {
@@ -772,12 +777,33 @@
     // Let the genuine link click open the new tab before removing its destination.
     window.setTimeout(closeLinkMenu,0);
   });
+  editLink.addEventListener('click',async()=>{
+    const card=contextCard;closeLinkMenu();if(imageBusy || !card || !editor.contains(card)) return;
+    const value=window.prompt('새 HTTPS 주소를 입력해주세요.',card.href);if(value===null) return;
+    let url;try {url=new URL(value.trim());if(url.protocol!=='https:' || url.username || url.password || url.href.length>2048) throw new Error();}catch(_){setStatus('올바른 HTTPS 주소를 입력해주세요.','error');return;}
+    recordEdit('boundary');imageBusy=true;editor.contentEditable='false';
+    const buttons=Array.from(page.querySelectorAll('.posting-toolbar button,[data-publish-post]'));const disabled=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);
+    setStatus('새 링크 정보를 가져오는 중입니다…','neutral',true);
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),6500);
+    try {
+      const response=await fetch(`/api/link-preview?url=${encodeURIComponent(url.href)}`,{signal:controller.signal,credentials:'omit'});if(!response.ok) throw new Error();
+      const data=await response.json();
+      if(!editor.contains(card)) return;
+      const holder=document.createElement('template');holder.innerHTML=postContent.linkCard({...data,url:url.href});
+      const replacement=holder.content.firstElementChild;if(!replacement) throw new Error();
+      for(const name of ['data-card-id','data-image-width','data-align']) if(card.hasAttribute(name)) replacement.setAttribute(name,card.getAttribute(name));
+      holder.innerHTML=postContent.renderHtml(holder.innerHTML,[]);const rendered=holder.content.firstElementChild;
+      card.replaceWith(rendered);renderImages();mediaEditor.select(rendered);recordEdit();scheduleAutosave();setStatus('링크를 수정했습니다.','success');
+    } catch(_){setStatus('새 링크 정보를 가져오지 못해 기존 카드를 유지했습니다.','error');}
+    finally {clearTimeout(timer);imageBusy=false;editor.contentEditable='true';buttons.forEach((b,i)=>b.disabled=disabled[i]);updateHistoryButtons();}
+  });
   document.addEventListener('pointerdown',event=>{if(!linkMenu.contains(event.target)) closeLinkMenu();},true);
   document.addEventListener('keydown',event=>{
     if(linkMenu.hidden) return;
     if(event.key==='Escape') {event.preventDefault();const card=contextCard;closeLinkMenu();card?.focus({preventScroll:true});}
-    else if(event.key==='Tab') closeLinkMenu();
+    else if(event.key==='ArrowDown' || event.key==='ArrowUp') {event.preventDefault();(document.activeElement===viewLink?editLink:viewLink).focus();}
   });
+  linkMenu.addEventListener('focusout',()=>window.setTimeout(()=>{if(!linkMenu.contains(document.activeElement)) closeLinkMenu();},0));
   document.addEventListener('scroll',closeLinkMenu,true);
   window.addEventListener('resize',closeLinkMenu);
   window.addEventListener('blur',closeLinkMenu);

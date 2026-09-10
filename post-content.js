@@ -57,7 +57,7 @@
         }
         const href = tag === 'A' ? element.getAttribute('href') || '' : '';
         const card = tag==='A' && element.dataset.linkCard==='1' ? {
-          title:element.dataset.cardTitle || '',description:element.dataset.cardDescription || '',image:safeUrl(element.dataset.cardImage)
+          title:element.dataset.cardTitle || '',description:element.dataset.cardDescription || '',image:safeUrl(element.dataset.cardImage),id:element.dataset.cardId,width:element.dataset.imageWidth
         } : null;
         Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
         if (ALIGNABLE.has(tag) && ALIGNMENTS.has(alignment)) element.setAttribute('data-align', alignment);
@@ -73,6 +73,9 @@
                 element.dataset.cardTitle=card.title.slice(0,200) || url.hostname;
                 element.dataset.cardDescription=card.description.slice(0,300);
                 element.dataset.cardImage=card.image;
+                if(IMAGE_ID.test(card.id || '')) element.dataset.cardId=card.id;
+                if(/^\d+(?:\.\d{1,2})?$/.test(card.width || '') && Number(card.width)>=10 && Number(card.width)<=100) element.dataset.imageWidth=String(Number(card.width));
+                if(ALIGNMENTS.has(alignment)) element.dataset.align=alignment;
                 element.textContent=element.dataset.cardTitle;
               }
             }
@@ -98,6 +101,8 @@
       });
       template.content.querySelectorAll('a[data-link-card="1"]').forEach(element=>{
         element.className='posting-link-card';element.contentEditable='false';
+        if(element.dataset.imageWidth) {element.style.width=`${element.dataset.imageWidth}%`;element.style.maxWidth='100%';}
+        if(element.dataset.align) {element.style.marginLeft=element.dataset.align==='left'?'0':'auto';element.style.marginRight=element.dataset.align==='right'?'0':'auto';element.style.textAlign='left';}
         element.setAttribute('contenteditable','false');element.setAttribute('draggable','false');
         element.textContent='';
         if(element.dataset.cardImage) {

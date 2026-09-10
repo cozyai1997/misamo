@@ -45,6 +45,61 @@ function insertBetweenWords(w) {
   return editor;
 }
 
+test('link cards align, delete, undo and update their destination without losing layout', async () => {
+  const dom=openComposer();const w=dom.window;
+  try {
+    const editor=w.document.querySelector('[data-post-editor]');
+    editor.innerHTML='<p>앞</p>'+w.MisamoContent.renderHtml(w.MisamoContent.linkCard({url:'https://example.com/',title:'Original'}),[])+'<p>뒤</p>';
+    editor.dispatchEvent(new w.Event('input',{bubbles:true}));
+    let card=editor.querySelector('a');card.click();
+    w.document.querySelector('[data-editor-align="right"]').click();
+    assert.equal(card.dataset.align,'right');
+    assert.ok(card.draggable);
+    card.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}));
+    assert.equal(editor.querySelector('a'),null);
+    w.document.querySelector('[data-editor-command="undo"]').click();card=editor.querySelector('a');
+    assert.equal(card.dataset.align,'right');
+    w.prompt=()=> 'https://example.org/new';
+    w.fetch=async()=>({ok:true,json:async()=>({title:'Updated',description:'New description',image:''})});
+    card.dispatchEvent(new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true}));
+    const edit=[...w.document.querySelectorAll('[data-link-context-menu] button')].find(b=>b.textContent==='링크 수정');
+    assert.ok(edit);edit.click();await new Promise(resolve=>setTimeout(resolve,10));
+    card=editor.querySelector('a');assert.equal(card.href,'https://example.org/new');assert.equal(card.dataset.align,'right');
+    assert.equal(card.querySelector('.posting-link-title').textContent,'Updated');
+    w.document.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.querySelector('a').href,'https://example.com/');
+  }finally{w.close();}
+});
+
+test('card dragging inserts between words and width survives save and undo', () => {
+  const dom=openComposer();const w=dom.window;
+  try {
+    const editor=w.document.querySelector('[data-post-editor]');
+    editor.innerHTML='<p>앞뒤</p>'+w.MisamoContent.renderHtml(w.MisamoContent.linkCard({url:'https://example.com/',title:'Card'}),[]);
+    editor.dispatchEvent(new w.Event('input',{bubbles:true}));
+    const card=editor.querySelector('a');
+    const range=w.document.createRange();range.setStart(editor.querySelector('p').firstChild,1);range.collapse(true);
+    w.document.caretRangeFromPoint=()=>range;
+    const transfer={setData(){},getData(){return '';},files:[]};
+    for(const [target,type] of [[card,'dragstart'],[editor,'drop']]) {
+      const event=new w.Event(type,{bubbles:true,cancelable:true});Object.defineProperties(event,{dataTransfer:{value:transfer},clientX:{value:0},clientY:{value:0}});target.dispatchEvent(event);
+    }
+    assert.equal(card.previousSibling.textContent,'앞');assert.equal(card.nextSibling.textContent,'뒤');
+    card.getBoundingClientRect=()=>({left:0,top:0,width:400,height:88});
+    editor.getBoundingClientRect=()=>({left:0,top:0,width:800,height:400});editor.style.padding='0';
+    card.click();
+    w.document.querySelector('[data-media-resize="se"]').dispatchEvent(new w.MouseEvent('pointerdown',{button:0,clientX:400,clientY:88,bubbles:true}));
+    w.document.dispatchEvent(new w.MouseEvent('pointermove',{clientX:240,clientY:88,bubbles:true}));
+    w.document.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true}));
+    assert.equal(card.dataset.imageWidth,'30');
+    w.document.querySelector('[data-save-draft]').click();
+    const saved=w.MisamoStore.readDraft();
+    const holder=w.document.createElement('div');holder.innerHTML=w.MisamoContent.renderHtml(saved.bodyHtml,[]);
+    assert.equal(holder.querySelector('a').style.width,'30%');
+    w.document.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.querySelector('a').dataset.imageWidth,undefined);
+    w.document.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.querySelector('a').dataset.imageWidth,'30');
+  }finally{w.close();}
+});
+
 test('editor cards block navigation and expose a dismissible link menu without changing saved content', () => {
   const dom=openComposer();const w=dom.window;
   try {
@@ -62,6 +117,8 @@ test('editor cards block navigation and expose a dismissible link menu without c
     assert.ok(menu && !menu.hidden);
     const link=menu.querySelector('a');assert.equal(link.textContent,'링크 보기');assert.equal(link.href,'https://example.com/');assert.equal(link.rel,'noopener noreferrer');
     assert.equal(w.MisamoContent.sanitizeHtml(editor.innerHTML),saved);
+    w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
+    assert.equal(w.document.activeElement.textContent,'링크 수정');
     w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
     assert.equal(menu.hidden,true);
     const textContext=new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true});
