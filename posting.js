@@ -54,7 +54,6 @@
           <button type="button" data-editor-command="italic" aria-label="기울임"><em>I</em></button>
           <button type="button" data-editor-command="underline" aria-label="밑줄"><u>U</u></button>
           <span aria-hidden="true"></span>
-          <button type="button" data-editor-command="formatBlock" data-command-value="h2" aria-label="제목 스타일">H2</button>
           <button type="button" data-editor-command="insertUnorderedList" aria-label="글머리 기호"><i data-lucide="list"></i></button>
           <button type="button" data-editor-command="insertOrderedList" aria-label="번호 매기기"><i data-lucide="list-ordered"></i></button>
           <button type="button" data-editor-link aria-label="HTTPS 링크 추가"><i data-lucide="link"></i></button>
