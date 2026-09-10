@@ -76,3 +76,18 @@ test('pointer resizing stores a bounded percentage width without forcing height'
   assert.equal(img.dataset.imageWidth,'25');assert.equal(img.style.width,'25%');
   assert.ok(!img.style.height || img.style.height==='auto');assert.ok(changes.length);
 });
+test('drag appearance resets on cancellation and after dropping between words', t=>{
+  const {w,d,editor,drag}=setup(t);const img=editor.querySelector('img');
+  drag(img,'dragstart');
+  assert.ok(img.classList.contains('is-dragging'));
+  drag(img,'dragend');assert.equal(img.classList.contains('is-dragging'),false);
+  const paragraph=editor.querySelector('p');paragraph.textContent='앞글뒷글';
+  const range=d.createRange();range.setStart(paragraph.firstChild,2);range.collapse(true);d.caretRangeFromPoint=()=>range;
+  drag(img,'dragstart');drag(editor,'drop');
+  assert.equal(img.classList.contains('is-dragging'),false);
+  assert.equal(paragraph.childNodes[0].textContent,'앞글');
+  assert.equal(paragraph.childNodes[1],img);
+  assert.equal(paragraph.childNodes[2].textContent,'뒷글');
+  const caret=w.getSelection().getRangeAt(0);
+  assert.equal(caret.startContainer,paragraph);assert.equal(caret.startOffset,2);
+});

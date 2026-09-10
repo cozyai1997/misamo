@@ -14,12 +14,16 @@
       if (!selected || !editor.contains(selected)) { frame.hidden = true; return; }
       const r = selected.getBoundingClientRect(), base = surface.getBoundingClientRect();
       Object.assign(frame.style, { left:`${r.left-base.left}px`, top:`${r.top-base.top}px`, width:`${r.width}px`, height:`${r.height}px` });
-      frame.querySelector('[data-media-size]').textContent = `${Math.round(r.width)} × ${Math.round(r.height)} · 사진을 끌어 이동`;
+      frame.querySelector('[data-media-size]').textContent = `${Math.round(r.width)} × ${Math.round(r.height)}`;
       frame.hidden = false;
       const actions = frame.querySelector('.media-actions');
       actions.style.left = `${Math.min(-2, base.width - (r.left-base.left) - actions.offsetWidth - 8)}px`;
     }
     function clearSelection() { selected = null; frame.hidden = true; }
+    function finishDrag() {
+      dragging?.classList.remove('is-dragging');
+      dragging=null;indicator.hidden=true;surface.classList.remove('media-dragging');
+    }
     function select(image) { selected = image; updateFrame(); syncAlignment(); }
     function refresh() {
       editor.querySelectorAll('img[data-image-id]').forEach(image => { image.draggable = true; image.tabIndex = 0; });
@@ -131,19 +135,23 @@
     });
     editor.addEventListener('dragstart', event=>{
       const image=event.target.closest?.('img[data-image-id]');if(!image) return;
-      dragging=image;select(image);event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('application/x-misamo-image',image.dataset.imageId);
+      dragging=image;select(image);image.classList.add('is-dragging');surface.classList.add('media-dragging');
+      event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('application/x-misamo-image',image.dataset.imageId);
     });
     editor.addEventListener('dragover',event=>{
       if(!supportsDrop(event)) return;event.preventDefault();event.dataTransfer.dropEffect=dragging?'move':'copy';showDropLine(event,dropRange(event));
     });
     editor.addEventListener('dragleave',event=>{ if(!editor.contains(event.relatedTarget)) indicator.hidden=true; });
-    editor.addEventListener('dragend',()=>{dragging=null;indicator.hidden=true;});
+    editor.addEventListener('dragend',finishDrag);
     editor.addEventListener('drop',event=>{
       event.preventDefault();indicator.hidden=true;const range=dropRange(event);
       if(dragging && editor.contains(dragging)) {
-        const image=dragging;dragging=null;
+        const image=dragging;finishDrag();
         if(range.startContainer===image) return;
-        image.remove();range.insertNode(image);select(image);onChange();
+        image.remove();range.insertNode(image);
+        range.setStartAfter(image);range.collapse(true);
+        editor.focus({preventScroll:true});win.getSelection().removeAllRanges();win.getSelection().addRange(range);
+        savedRange=range.cloneRange();select(image);onChange();
       } else if(event.dataTransfer?.files?.length) onFiles(Array.from(event.dataTransfer.files),range);
       else {
         const text=event.dataTransfer?.getData('text/plain');
@@ -172,7 +180,7 @@
     editor.addEventListener('input',()=>{clearSelection();refresh();});
     editor.addEventListener('load',updateFrame,true);
     win.addEventListener('resize',updateFrame);win.addEventListener('scroll',updateFrame,true);
-    win.addEventListener('misamo:view',()=>{clearSelection();indicator.hidden=true;});
+    win.addEventListener('misamo:view',()=>{clearSelection();finishDrag();});
     refresh();syncAlignment();
     return { refresh, clearSelection, select };
   };
