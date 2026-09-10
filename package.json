@@ -1,0 +1,11 @@
+{
+  "name": "misamo-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

@@ -316,6 +316,56 @@
   height: 17px;
 }
 
+.posting-toolbar .posting-insert-image {
+  display: inline-flex;
+  gap: 6px;
+  width: auto;
+  padding: 0 9px;
+  color: var(--pink);
+  background: #fff2f6;
+}
+
+.posting-image-hint {
+  margin: 4px 0 0;
+  color: #777e8f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.posting-inline-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 640px;
+  object-fit: contain;
+  margin: 16px auto;
+  border-radius: 10px;
+}
+
+.posting-image-insert {
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--pink);
+  background: #fff5f8;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.post-card.posting-inline-post .post-body {
+  grid-template-columns: 1fr;
+}
+
+.post-card.posting-inline-post .post-image {
+  width: 100%;
+  height: auto;
+  max-height: 480px;
+  object-fit: contain;
+}
+
 .posting-editor {
   min-height: 260px;
   padding: 18px 2px;

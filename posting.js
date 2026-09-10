@@ -2,52 +2,14 @@
   "use strict";
 
   const POST_TYPES = ["질문", "경험 나눔", "정보 공유", "성공 사례", "실패 사례", "지원사업", "기타"];
-  const ALLOWED_TAGS = new Set(["P", "DIV", "BR", "STRONG", "B", "EM", "I", "U", "H2", "H3", "UL", "OL", "LI", "A"]);
-  const DROP_WITH_CONTENT = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM"]);
+  const postContent = window.MisamoContent;
+  if (!postContent) return;
   const MAX_IMAGES = 3;
   const MAX_IMAGE_BYTES = 1000000;
   const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
   const AUTOSAVE_DELAY = 700;
 
-  function sanitizeHtml(value) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<div>${String(value || "")}</div>`, "text/html");
-    const root = doc.body.firstElementChild;
-
-    Array.from(root.querySelectorAll("*")).reverse().forEach((element) => {
-      const tag = element.tagName;
-
-      if (DROP_WITH_CONTENT.has(tag)) {
-        element.remove();
-        return;
-      }
-
-      if (!ALLOWED_TAGS.has(tag)) {
-        element.replaceWith(...element.childNodes);
-        return;
-      }
-
-      const href = tag === "A" ? element.getAttribute("href") || "" : "";
-      Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
-
-      if (tag === "A" && /^https:\/\//i.test(href)) {
-        try {
-          const url = new URL(href);
-          if (url.protocol === "https:") {
-            element.setAttribute("href", url.href);
-            element.setAttribute("target", "_blank");
-            element.setAttribute("rel", "noopener noreferrer");
-          }
-        } catch (_error) {
-          element.replaceWith(...element.childNodes);
-        }
-      } else if (tag === "A") {
-        element.replaceWith(...element.childNodes);
-      }
-    });
-
-    return root.innerHTML;
-  }
+  const sanitizeHtml = postContent.sanitizeHtml;
 
   window.MisamoPostingSanitize = sanitizeHtml;
 
@@ -96,15 +58,17 @@
           <button type="button" data-editor-command="insertUnorderedList" aria-label="글머리 기호"><i data-lucide="list"></i></button>
           <button type="button" data-editor-command="insertOrderedList" aria-label="번호 매기기"><i data-lucide="list-ordered"></i></button>
           <button type="button" data-editor-link aria-label="HTTPS 링크 추가"><i data-lucide="link"></i></button>
+          <button type="button" class="posting-insert-image" data-editor-image aria-label="이미지 넣기"><i data-lucide="image-plus"></i><span>이미지 넣기</span></button>
           <span aria-hidden="true"></span>
           <button type="button" data-editor-command="undo" aria-label="실행 취소"><i data-lucide="undo-2"></i></button>
           <button type="button" data-editor-command="redo" aria-label="다시 실행"><i data-lucide="redo-2"></i></button>
         </div>
         <div class="posting-editor" contenteditable="true" role="textbox" aria-label="본문" aria-multiline="true" data-placeholder="창업 경험과 생각을 자유롭게 나눠주세요." data-post-editor></div>
+        <p class="posting-image-hint">본문에서 원하는 위치를 클릭한 뒤 ‘이미지 넣기’를 눌러주세요. 사진 아래에 이어서 글을 쓸 수 있어요.</p>
       </section>
 
       <section class="posting-block" aria-labelledby="posting-image-title">
-        <div class="posting-label-row"><div><h2 id="posting-image-title">이미지</h2><span>최대 3장 · 브라우저 저장을 위해 자동 압축됩니다</span></div><small data-image-total>0 / 약 1MB</small></div>
+        <div class="posting-label-row"><div><h2 id="posting-image-title">첨부 이미지</h2><span>최대 3장 · 본문에 넣거나 위치를 옮길 수 있어요</span></div><small data-image-total>0 / 약 1MB</small></div>
         <div class="posting-image-grid" data-image-list></div>
         <label class="posting-image-upload" data-image-upload>
           <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-image-input />
@@ -160,6 +124,7 @@
   const tagList = rail.querySelector("[data-tag-list]");
   const tagCount = rail.querySelector("[data-tag-count]");
   const imageInput = page.querySelector("[data-image-input]");
+  const inlineImageButton = page.querySelector("[data-editor-image]");
   const imageList = page.querySelector("[data-image-list]");
   const imageTotal = page.querySelector("[data-image-total]");
   const imageUpload = page.querySelector("[data-image-upload]");
@@ -171,6 +136,7 @@
   let autosaveTimer = 0;
   let statusTimer = 0;
   let imageBusy = false;
+  let savedEditorRange = null;
   let writingActive = window.location.hash === "#write";
 
   function setStatus(message, tone, sticky) {
@@ -333,17 +299,74 @@
       remove.setAttribute("aria-label", `${index + 1}번 이미지 삭제`);
       remove.textContent = "×";
       remove.addEventListener("click", () => {
+        editor.querySelectorAll("img[data-image-id]").forEach((node) => {
+          if (node.dataset.imageId === image.id) node.remove();
+        });
         images = images.filter((entry) => entry.id !== image.id);
         if (coverId === image.id) coverId = images[0]?.id || "";
         renderImages();
         scheduleAutosave();
       });
-      item.append(preview, cover, remove);
+      const insert = document.createElement("button");
+      insert.type = "button";
+      insert.className = "posting-image-insert";
+      insert.textContent = "본문에 넣기";
+      insert.setAttribute("aria-label", `${index + 1}번 이미지 본문에 넣기`);
+      insert.addEventListener("click", () => {
+        insertImageAtCaret(image.id);
+        scheduleAutosave();
+        setStatus("커서 위치에 이미지를 넣었습니다. 이미 넣은 사진은 이 위치로 옮겨집니다.", "success");
+      });
+      item.append(preview, cover, insert, remove);
       imageList.appendChild(item);
     });
     const bytes = images.reduce((total, image) => total + estimateDataUrlBytes(image.src), 0);
     imageTotal.textContent = `${Math.round(bytes / 1024)}KB / 약 1MB`;
     imageUpload.hidden = images.length >= MAX_IMAGES;
+  }
+
+  function rememberEditorRange() {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.startContainer) && editor.contains(range.endContainer)) {
+      savedEditorRange = range.cloneRange();
+    }
+  }
+
+  function imageInsertionRange() {
+    if (savedEditorRange && editor.contains(savedEditorRange.startContainer) && editor.contains(savedEditorRange.endContainer)) {
+      return savedEditorRange.cloneRange();
+    }
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    return range;
+  }
+
+  function insertImageAtCaret(id, insertionRange = imageInsertionRange()) {
+    const holder = document.createElement("div");
+    const marker = document.createElement("img");
+    marker.dataset.imageId = id;
+    holder.innerHTML = postContent.renderHtml(marker.outerHTML, images);
+    const image = holder.firstElementChild;
+    if (!image) return insertionRange;
+    const range = editor.contains(insertionRange.startContainer) && editor.contains(insertionRange.endContainer)
+      ? insertionRange : imageInsertionRange();
+    editor.querySelectorAll("img[data-image-id]").forEach((node) => {
+      if (node.dataset.imageId === id) node.remove();
+    });
+    range.collapse(false);
+    range.insertNode(image);
+    range.setStartAfter(image);
+    range.collapse(true);
+    editor.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    savedEditorRange = range.cloneRange();
+    image.scrollIntoView?.({ block: "nearest" });
+    return range;
   }
 
   function readImage(file) {
@@ -387,12 +410,15 @@
   }
 
   async function handleImageFiles(fileList) {
+    if (imageBusy) return;
+    let insertionRange = imageInsertionRange();
     const files = Array.from(fileList || []).slice(0, MAX_IMAGES - images.length);
     if (!files.length) {
       if (images.length >= MAX_IMAGES) setStatus("이미지는 최대 3장까지 추가할 수 있습니다.", "error");
       return;
     }
     imageBusy = true;
+    inlineImageButton.disabled = true;
     publishButton.disabled = true;
     imageUpload.classList.add("is-busy");
     setStatus("이미지를 브라우저 저장용으로 압축하고 있습니다…", "neutral", true);
@@ -406,15 +432,18 @@
         const id = window.crypto?.randomUUID?.() || `image-${Date.now()}-${index}`;
         images.push({ id, src: source, alt: files[index].name.replace(/\.[^.]+$/, "") || `첨부 이미지 ${images.length + 1}` });
         if (!coverId) coverId = id;
+        insertionRange = insertImageAtCaret(id, insertionRange);
       }
       renderImages();
       scheduleAutosave();
-      setStatus("이미지를 이 브라우저에만 추가했습니다.", "success");
+      setStatus("본문에 이미지를 넣었습니다. 사진 아래에 이어서 작성해보세요.", "success");
     } catch (error) {
       renderImages();
+      scheduleAutosave();
       setStatus(error?.message || "이미지를 처리하지 못했습니다.", "error", true);
     } finally {
       imageBusy = false;
+      inlineImageButton.disabled = false;
       publishButton.disabled = false;
       imageUpload.classList.remove("is-busy");
       imageInput.value = "";
@@ -424,8 +453,6 @@
   function applyDraft(draft) {
     if (!draft || typeof draft !== "object") return;
     titleInput.value = String(draft.title || "").slice(0, 100);
-    const cleanHtml = sanitizeHtml(draft.bodyHtml || "");
-    editor.innerHTML = cleanHtml;
     selectedType = POST_TYPES.includes(draft.type) ? draft.type : "";
     if (Array.from(categorySelect.options).some((option) => option.value === draft.category)) categorySelect.value = draft.category;
     if (Array.from(industrySelect.options).some((option) => option.value === draft.industry)) industrySelect.value = draft.industry;
@@ -442,6 +469,8 @@
       return true;
     }) : [];
     coverId = images.some((image) => image.id === draft.coverId) ? String(draft.coverId) : (images[0]?.id || "");
+    editor.innerHTML = postContent.renderHtml(draft.bodyHtml || "", images);
+    savedEditorRange = null;
     titleCount.textContent = String(titleInput.value.length);
     renderTypes();
     renderTags();
@@ -492,7 +521,7 @@
     heading.textContent = String(post.title || "");
     const richBody = document.createElement("div");
     richBody.className = "post-rich-body";
-    const sanitizedPostHtml = sanitizeHtml(post.bodyHtml || "");
+    const sanitizedPostHtml = postContent.renderHtml(post.bodyHtml || "", post.images || []);
     if (sanitizedPostHtml) richBody.innerHTML = sanitizedPostHtml;
     else {
       const paragraph = document.createElement("p");
@@ -513,7 +542,10 @@
     }
     body.appendChild(copy);
     const postImages = Array.isArray(post.images) ? post.images : [];
-    const cover = postImages.find((image) => image?.id === post.coverId) || postImages[0];
+    const inlineIds = new Set(postContent.inlineImageIds(richBody.innerHTML));
+    if (inlineIds.size) card.classList.add("posting-inline-post");
+    const remainingImages = postImages.filter((image) => !inlineIds.has(image?.id));
+    const cover = remainingImages.find((image) => image?.id === post.coverId) || remainingImages[0];
     const coverSource = safeImageSource(cover?.src);
     if (coverSource) {
       const image = document.createElement("img");
@@ -552,12 +584,13 @@
     const draft = captureDraft();
     previewDialog.querySelector("[data-preview-title]").textContent = draft.title || "제목 없음";
     const previewBody = previewDialog.querySelector("[data-preview-body]");
-    previewBody.innerHTML = sanitizeHtml(draft.bodyHtml) || "<p>내용이 없습니다.</p>";
+    previewBody.innerHTML = postContent.renderHtml(draft.bodyHtml, draft.images) || "<p>내용이 없습니다.</p>";
     const meta = previewDialog.querySelector("[data-preview-meta]");
     meta.textContent = [draft.type, draft.category, draft.industry].filter(Boolean).join(" · ") || "분류 없음";
     const previewImages = previewDialog.querySelector("[data-preview-images]");
     previewImages.replaceChildren();
-    draft.images.forEach((entry) => {
+    const inlineIds = new Set(postContent.inlineImageIds(previewBody.innerHTML));
+    draft.images.filter((entry) => !inlineIds.has(entry.id)).forEach((entry) => {
       const image = document.createElement("img");
       image.src = safeImageSource(entry.src);
       image.alt = entry.alt;
@@ -579,6 +612,7 @@
     autosaveTimer = 0;
     titleInput.value = "";
     editor.replaceChildren();
+    savedEditorRange = null;
     selectedType = "";
     categorySelect.value = "";
     industrySelect.value = "";
@@ -630,7 +664,20 @@
     titleCount.textContent = String(titleInput.value.length);
     scheduleAutosave();
   });
-  editor.addEventListener("input", scheduleAutosave);
+  document.addEventListener("selectionchange", rememberEditorRange);
+  editor.addEventListener("keyup", rememberEditorRange);
+  editor.addEventListener("pointerup", rememberEditorRange);
+  editor.addEventListener("input", () => { rememberEditorRange(); scheduleAutosave(); });
+  inlineImageButton.addEventListener("mousedown", (event) => event.preventDefault());
+  inlineImageButton.addEventListener("click", () => {
+    if (images.length >= MAX_IMAGES) {
+      setStatus("이미지는 최대 3장입니다. 첨부 이미지의 ‘본문에 넣기’로 위치를 옮기거나 사진을 삭제해주세요.", "error", true);
+      imageList.scrollIntoView?.({ block: "nearest" });
+      return;
+    }
+    rememberEditorRange();
+    imageInput.click();
+  });
   editor.addEventListener("paste", (event) => {
     event.preventDefault();
     const text = event.clipboardData?.getData("text/plain") || "";

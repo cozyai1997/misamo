@@ -134,7 +134,7 @@
         time: post.querySelector('.post-head small')?.textContent?.trim() || '',
         title: post.querySelector('.post-copy h2')?.textContent?.trim() || '',
         body: (post.querySelector('.post-rich-body') || post.querySelector('.post-copy p'))?.textContent?.trim() || '',
-        image: post.querySelector('.post-image'),
+        image: post.querySelector('.post-image, .post-rich-body .posting-inline-image'),
         like: post.querySelector('[data-like-button]'),
       };
     }
