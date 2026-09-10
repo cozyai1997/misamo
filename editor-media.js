@@ -104,13 +104,32 @@
       if (!range || !editor.contains(range.startContainer)) {
         range=doc.createRange();range.selectNodeContents(editor);range.collapse(false);
       }
+      const caret=range.getBoundingClientRect?.();
+      if (range.startContainer.nodeType===3 && caret?.height &&
+          (event.clientY < caret.top-3 || event.clientY > caret.bottom+3)) {
+        let block=range.startContainer.parentElement;
+        while(block.parentElement && block.parentElement!==editor) block=block.parentElement;
+        if(block!==editor) {
+          const rect=block.getBoundingClientRect();
+          if(event.clientY < (rect.top+rect.bottom)/2) range.setStartBefore(block);else range.setStartAfter(block);
+        }
+      }
       range.collapse(true);return range;
     }
     function showDropLine(event, range) {
       const base=surface.getBoundingClientRect(), body=editor.getBoundingClientRect();
       const caret=range.getBoundingClientRect?.();
-      const y=caret?.height ? caret.bottom : Math.max(body.top,Math.min(body.bottom,event.clientY));
-      Object.assign(indicator.style,{left:`${body.left-base.left}px`,top:`${y-base.top}px`,width:`${body.width}px`});
+      const inline=range.startContainer.nodeType===3 && caret?.height;
+      indicator.dataset.kind=inline?'caret':'block';
+      if(inline) {
+        Object.assign(indicator.style,{left:`${caret.left-base.left}px`,top:`${caret.top-base.top}px`,width:'2px',height:`${caret.height}px`});
+      } else {
+        const container=range.startContainer,offset=range.startOffset;
+        const next=container.childNodes?.[offset],previous=container.childNodes?.[offset-1];
+        const before=previous?.getBoundingClientRect?.(),after=next?.getBoundingClientRect?.();
+        const y=before && after ? (before.bottom+after.top)/2 : after?.top ?? before?.bottom ?? Math.max(body.top,Math.min(body.bottom,event.clientY));
+        Object.assign(indicator.style,{left:`${body.left-base.left}px`,top:`${y-base.top}px`,width:`${body.width}px`,height:'0px'});
+      }
       indicator.hidden=false;
     }
     function supportsDrop(event) { return !!dragging || Array.from(event.dataTransfer?.types || []).includes('Files'); }

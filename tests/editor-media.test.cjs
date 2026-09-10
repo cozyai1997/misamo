@@ -91,3 +91,21 @@ test('drag appearance resets on cancellation and after dropping between words', 
   const caret=w.getSelection().getRangeAt(0);
   assert.equal(caret.startContainer,paragraph);assert.equal(caret.startOffset,2);
 });
+test('text drop shows a vertical caret at the exact insertion character', t=>{
+  const {d,editor,drag}=setup(t);const p=editor.querySelector('p');p.textContent='앞뒤';
+  const range=d.createRange();range.setStart(p.firstChild,1);range.collapse(true);
+  range.getBoundingClientRect=()=>({left:120,top:20,bottom:40,height:20});d.caretRangeFromPoint=()=>range;
+  drag(editor.querySelector('img'),'dragstart');drag(p,'dragover',120,30);
+  const line=d.querySelector('.media-drop-line');
+  assert.equal(line.dataset.kind,'caret');assert.equal(line.style.left,'120px');assert.equal(line.style.height,'20px');
+  drag(p,'drop',120,30);assert.equal(p.childNodes[1].tagName,'IMG');
+});
+test('paragraph gap uses a horizontal boundary and inserts outside text', t=>{
+  const {d,editor,drag}=setup(t);const p=editor.querySelector('p');
+  p.getBoundingClientRect=()=>({top:20,bottom:40});
+  const range=d.createRange();range.setStart(p.firstChild,1);range.collapse(true);
+  range.getBoundingClientRect=()=>({left:120,top:20,bottom:40,height:20});d.caretRangeFromPoint=()=>range;
+  const img=editor.querySelector('img');drag(img,'dragstart');drag(editor,'dragover',120,48);
+  assert.equal(d.querySelector('.media-drop-line').dataset.kind,'block');
+  drag(editor,'drop',120,48);assert.equal(img.parentElement,editor);assert.equal(img.previousSibling,p);
+});
