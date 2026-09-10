@@ -742,6 +742,53 @@
     rememberEditorRange();
     imageInput.click();
   });
+  function standaloneLink(text, range) {
+    if(!range.collapsed || /\s/.test(text.trim())) return '';
+    try {
+      const url=new URL(text.trim());
+      if(url.protocol!=='https:' || url.username || url.password || url.href.length>2048) return '';
+      let block=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
+      while(block!==editor && !block.matches('p,div,li')) block=block.parentElement;
+      if(block.textContent.trim() || block.querySelector('img,a[data-link-card]')) return '';
+      return url.href;
+    } catch(_){return '';}
+  }
+  async function insertLinkPreview(url, range) {
+    if(imageBusy) return;
+    imageBusy=true;recordEdit('boundary');
+    const placeholder=document.createElement('a');placeholder.href=url;placeholder.target='_blank';
+    placeholder.rel='noopener noreferrer';placeholder.textContent=url;
+    range.insertNode(placeholder);range.setStartAfter(placeholder);range.collapse(true);
+    const trailingBreak=document.createElement('br');range.insertNode(trailingBreak);range.setStartAfter(trailingBreak);range.collapse(true);
+    // Persist the address before networking so refresh/navigation cannot lose the paste.
+    saveDraft({manual:false});
+    const buttons=Array.from(page.querySelectorAll('.posting-toolbar button, [data-publish-post]'));
+    const disabled=buttons.map(button=>button.disabled);
+    buttons.forEach(button=>button.disabled=true);
+    editor.contentEditable='false';editor.setAttribute('aria-busy','true');
+    setStatus('링크 미리보기를 가져오는 중입니다…','info',true);
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),6500);
+    let html='';let success=false;
+    try {
+      const response=await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`,{signal:controller.signal,credentials:'omit'});
+      if(!response.ok) throw new Error();
+      const data=await response.json();html=postContent.linkCard({...data,url});success=Boolean(html);
+    } catch(_){/* A blocked or unavailable page remains an ordinary address. */}
+    finally {clearTimeout(timer);}
+    try {
+      if(!editor.contains(placeholder)) return;
+      const holder=document.createElement('template');
+      if(success) holder.innerHTML=postContent.renderHtml(html,[]);
+      if(success) placeholder.replaceWith(holder.content);
+      range.setStartAfter(trailingBreak);range.collapse(true);
+      if(writingActive) {const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);}
+      mediaEditor.clearSelection();rememberEditorRange();renderImages();recordEdit();scheduleAutosave();
+      setStatus(success?'링크 카드를 추가했습니다.':'미리보기를 가져오지 못해 주소로 추가했습니다.','info');
+    } finally {
+      imageBusy=false;editor.contentEditable='true';editor.removeAttribute('aria-busy');
+      buttons.forEach((button,index)=>button.disabled=disabled[index]);updateHistoryButtons();
+    }
+  }
   editor.addEventListener("paste", (event) => {
     event.preventDefault();
     if(imageBusy || composing) return;
@@ -749,6 +796,8 @@
     if(!text) return;
     rememberEditorRange();recordEdit('boundary');
     const range=imageInsertionRange(),fragment=document.createDocumentFragment();
+    const url=standaloneLink(text,range);
+    if(url) {void insertLinkPreview(url,range);return;}
     text.split('\n').forEach((line,index)=>{
       if(index) fragment.append(document.createElement('br'));
       fragment.append(document.createTextNode(line));
@@ -772,6 +821,7 @@
     });
   });
   page.querySelector("[data-editor-link]").addEventListener("click", () => {
+    if(imageBusy) return;
     const href = window.prompt("연결할 HTTPS 주소를 입력해주세요. (https://로 시작)");
     if (href === null) return;
     if (!/^https:\/\//i.test(href.trim())) {
@@ -781,6 +831,8 @@
     try {
       const url = new URL(href.trim());
       if (url.protocol !== "https:") throw new Error();
+      const range=imageInsertionRange();
+      if(standaloneLink(url.href,range)) {void insertLinkPreview(url.href,range);return;}
       editor.focus();
       recordEdit('boundary');
       document.execCommand("createLink", false, url.href);

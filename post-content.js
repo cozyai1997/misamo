@@ -9,6 +9,19 @@
   const IMAGE_SOURCE = /^data:image\/(?:jpeg|png|webp);base64,(?=[A-Za-z0-9+/])(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
   function createMisamoContent(document) {
+    function safeUrl(value) {
+      try {const url=new URL(String(value || ''));return url.protocol==='https:' && !url.username && !url.password && url.href.length<=2048 ? url.href : '';} catch(_){return '';}
+    }
+    function linkCard(data) {
+      const anchor=document.createElement('a');
+      const href=safeUrl(data.url);if(!href) return '';
+      anchor.href=href;anchor.dataset.linkCard='1';
+      anchor.dataset.cardTitle=String(data.title || new URL(href).hostname).slice(0,200);
+      anchor.dataset.cardDescription=String(data.description || '').slice(0,300);
+      anchor.dataset.cardImage=safeUrl(data.image);
+      anchor.textContent=anchor.dataset.cardTitle;
+      return sanitizeHtml(anchor.outerHTML);
+    }
     function parseHtml(value) {
       const template = document.createElement('template');
       template.innerHTML = String(value || '');
@@ -43,6 +56,9 @@
           return;
         }
         const href = tag === 'A' ? element.getAttribute('href') || '' : '';
+        const card = tag==='A' && element.dataset.linkCard==='1' ? {
+          title:element.dataset.cardTitle || '',description:element.dataset.cardDescription || '',image:safeUrl(element.dataset.cardImage)
+        } : null;
         Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
         if (ALIGNABLE.has(tag) && ALIGNMENTS.has(alignment)) element.setAttribute('data-align', alignment);
         if (tag === 'A' && /^https:\/\//i.test(href)) {
@@ -52,6 +68,13 @@
               element.setAttribute('href', url.href);
               element.setAttribute('target', '_blank');
               element.setAttribute('rel', 'noopener noreferrer');
+              if(card && safeUrl(href)) {
+                element.dataset.linkCard='1';
+                element.dataset.cardTitle=card.title.slice(0,200) || url.hostname;
+                element.dataset.cardDescription=card.description.slice(0,300);
+                element.dataset.cardImage=card.image;
+                element.textContent=element.dataset.cardTitle;
+              }
             }
           } catch (_error) {
             element.replaceWith(...element.childNodes);
@@ -72,6 +95,21 @@
       const template = parseHtml(sanitizeHtml(value));
       template.content.querySelectorAll('[data-align]').forEach(element => {
         if (element.tagName !== 'IMG') element.style.textAlign = element.dataset.align;
+      });
+      template.content.querySelectorAll('a[data-link-card="1"]').forEach(element=>{
+        element.className='posting-link-card';element.contentEditable='false';
+        element.setAttribute('contenteditable','false');element.setAttribute('draggable','false');
+        element.textContent='';
+        if(element.dataset.cardImage) {
+          const image=document.createElement('img');image.src=element.dataset.cardImage;image.alt='';
+          image.className='posting-link-thumbnail';image.loading='lazy';image.referrerPolicy='no-referrer';image.draggable=false;
+          element.append(image);
+        }
+        const info=document.createElement('span');info.className='posting-link-info';
+        for(const [name,text] of [['title',element.dataset.cardTitle],['description',element.dataset.cardDescription],['domain',new URL(element.href).hostname]]) {
+          const line=document.createElement('span');line.className=`posting-link-${name}`;line.textContent=text;info.append(line);
+        }
+        element.append(info);
       });
       const sources = new Map();
       (Array.isArray(images) ? images : []).forEach((image) => {
@@ -99,7 +137,7 @@
       return template.innerHTML;
     }
 
-    return { sanitizeHtml, renderHtml, inlineImageIds };
+    return { sanitizeHtml, renderHtml, inlineImageIds, linkCard };
   }
 
   if (typeof module !== 'undefined' && module.exports) module.exports = { createMisamoContent };

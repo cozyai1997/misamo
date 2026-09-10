@@ -45,6 +45,47 @@ function insertBetweenWords(w) {
   return editor;
 }
 
+test('a standalone pasted URL becomes a persistent card with undo and redo', async () => {
+  const dom=openComposer();const w=dom.window;
+  try {
+    const editor=w.document.querySelector('[data-post-editor]');
+    editor.innerHTML='<p><br></p>';
+    editor.dispatchEvent(new w.Event('input',{bubbles:true}));
+    const range=w.document.createRange();range.setStart(editor.firstChild,0);range.collapse(true);
+    w.getSelection().removeAllRanges();w.getSelection().addRange(range);
+    w.fetch=async()=>({ok:true,json:async()=>({url:'https://example.com/',title:'Example title',description:'Preview description',image:''})});
+    const paste=new w.Event('paste',{bubbles:true,cancelable:true});
+    Object.defineProperty(paste,'clipboardData',{value:{getData:()=> 'https://example.com/'}});
+    editor.dispatchEvent(paste);
+    assert.match(w.MisamoStore.readDraft().bodyHtml,/https:\/\/example.com\//,'Address is saved before the metadata request resolves');
+    await new Promise(resolve=>setTimeout(resolve,20));
+    assert.equal(editor.querySelector('.posting-link-title')?.textContent,'Example title');
+    w.document.querySelector('[data-save-draft]').click();
+    assert.match(w.MisamoStore.readDraft().bodyHtml,/data-link-card="1"/);
+    w.document.querySelector('[data-editor-command="undo"]').click();
+    assert.equal(editor.querySelector('.posting-link-card'),null);
+    w.document.querySelector('[data-editor-command="redo"]').click();
+    assert.equal(editor.querySelector('.posting-link-title')?.textContent,'Example title');
+  } finally {w.close();}
+});
+
+test('failed preview keeps the pasted address and sentence pastes never fetch', async () => {
+  const dom=openComposer();const w=dom.window;
+  try {
+    const editor=w.document.querySelector('[data-post-editor]');
+    editor.innerHTML='<p><br></p>';editor.dispatchEvent(new w.Event('input',{bubbles:true}));
+    const range=w.document.createRange();range.setStart(editor.firstChild,0);range.collapse(true);
+    w.getSelection().removeAllRanges();w.getSelection().addRange(range);
+    let requests=0;w.fetch=async()=>{requests++;throw new Error('Unavailable');};
+    const paste=text=>{const event=new w.Event('paste',{bubbles:true,cancelable:true});Object.defineProperty(event,'clipboardData',{value:{getData:()=>text}});editor.dispatchEvent(event);};
+    paste('https://example.com/');await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(editor.querySelector('a').textContent,'https://example.com/');
+    assert.equal(editor.querySelector('.posting-link-card'),null);
+    paste('추천 https://example.com/ 입니다');
+    assert.equal(requests,1);assert.match(editor.textContent,/추천 https:\/\/example.com\/ 입니다/);
+  }finally{w.close();}
+});
+
 test('inserting at a remembered caret preserves surrounding text and stores only an image reference', () => {
   const dom = openComposer(); const w = dom.window;
   try {
