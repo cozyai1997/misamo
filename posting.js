@@ -60,20 +60,18 @@
           <button type="button" data-editor-link aria-label="HTTPS 링크 추가"><i data-lucide="link"></i></button>
           <button type="button" class="posting-insert-image" data-editor-image aria-label="이미지 넣기"><i data-lucide="image-plus"></i><span>이미지 넣기</span></button>
           <span aria-hidden="true"></span>
+          <button type="button" data-editor-align="left" aria-label="왼쪽 정렬"><i data-lucide="align-left"></i></button>
+          <button type="button" data-editor-align="center" aria-label="가운데 정렬"><i data-lucide="align-center"></i></button>
+          <button type="button" data-editor-align="right" aria-label="오른쪽 정렬"><i data-lucide="align-right"></i></button>
+          <span aria-hidden="true"></span>
           <button type="button" data-editor-command="undo" aria-label="실행 취소"><i data-lucide="undo-2"></i></button>
           <button type="button" data-editor-command="redo" aria-label="다시 실행"><i data-lucide="redo-2"></i></button>
         </div>
-        <div class="posting-editor" contenteditable="true" role="textbox" aria-label="본문" aria-multiline="true" data-placeholder="창업 경험과 생각을 자유롭게 나눠주세요." data-post-editor></div>
-        <p class="posting-image-hint">본문에서 원하는 위치를 클릭한 뒤 ‘이미지 넣기’를 눌러주세요. 사진 아래에 이어서 글을 쓸 수 있어요.</p>
-      </section>
-
-      <section class="posting-block" aria-labelledby="posting-image-title">
-        <div class="posting-label-row"><div><h2 id="posting-image-title">첨부 이미지</h2><span>최대 3장 · 본문에 넣거나 위치를 옮길 수 있어요</span></div><small data-image-total>0 / 약 1MB</small></div>
-        <div class="posting-image-grid" data-image-list></div>
-        <label class="posting-image-upload" data-image-upload>
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-image-input />
-          <i data-lucide="image-plus"></i><strong>이미지 추가</strong><span>업로드한 파일은 외부로 전송되지 않습니다</span>
-        </label>
+        <div class="posting-editor-surface">
+          <div class="posting-editor" contenteditable="true" role="textbox" aria-label="본문" aria-multiline="true" data-placeholder="내용을 입력하거나 사진을 여기에 끌어다 놓으세요." data-post-editor></div>
+        </div>
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden data-image-input />
+        <p class="posting-image-hint">사진을 끌어 넣거나 이동하세요. 사진 선택 후 모서리를 끌면 크기를 조절할 수 있어요. <span data-image-total></span></p>
       </section>
 
       <p class="posting-status" role="status" aria-live="polite" data-posting-status></p>
@@ -125,9 +123,7 @@
   const tagCount = rail.querySelector("[data-tag-count]");
   const imageInput = page.querySelector("[data-image-input]");
   const inlineImageButton = page.querySelector("[data-editor-image]");
-  const imageList = page.querySelector("[data-image-list]");
   const imageTotal = page.querySelector("[data-image-total]");
-  const imageUpload = page.querySelector("[data-image-upload]");
   const publishButton = page.querySelector("[data-publish-post]");
   let tags = [];
   let images = [];
@@ -138,6 +134,17 @@
   let imageBusy = false;
   let savedEditorRange = null;
   let writingActive = window.location.hash === "#write";
+  const mediaEditor = window.createMisamoEditor({
+    editor, toolbar: page.querySelector('.posting-toolbar'),
+    onChange: () => { rememberEditorRange(); renderImages(); scheduleAutosave(); },
+    onFiles: (files, range) => handleImageFiles(files, range),
+    onDelete: (id) => {
+      editor.querySelectorAll('img[data-image-id]').forEach(node => { if(node.dataset.imageId === id) node.remove(); });
+      images = images.filter(image => image.id !== id);
+      if(coverId === id) coverId = images[0]?.id || '';
+      renderImages(); scheduleAutosave();
+    },
+  });
 
   function setStatus(message, tone, sticky) {
     window.clearTimeout(statusTimer);
@@ -172,6 +179,8 @@
 
   function captureDraft() {
     const bodyHtml = sanitizeHtml(editor.innerHTML);
+    const usedIds = new Set(postContent.inlineImageIds(bodyHtml));
+    const usedImages = images.filter(image => usedIds.has(image.id));
     return {
       title: titleInput.value.trim(),
       bodyHtml,
@@ -180,8 +189,8 @@
       category: categorySelect.value,
       industry: industrySelect.value,
       tags: tags.slice(0, 10),
-      images: images.map((image) => ({ id: image.id, src: image.src, alt: image.alt })),
-      coverId: images.some((image) => image.id === coverId) ? coverId : (images[0]?.id || ""),
+      images: usedImages.map((image) => ({ id: image.id, src: image.src, alt: image.alt })),
+      coverId: usedImages.some((image) => image.id === coverId) ? coverId : (usedImages[0]?.id || ""),
     };
   }
 
@@ -274,55 +283,11 @@
   }
 
   function renderImages() {
-    imageList.replaceChildren();
-    if (!coverId && images.length) coverId = images[0].id;
-    images.forEach((image, index) => {
-      const item = document.createElement("figure");
-      item.className = "posting-image-item";
-      if (image.id === coverId) item.classList.add("is-cover");
-      const preview = document.createElement("img");
-      preview.src = image.src;
-      preview.alt = image.alt || `첨부 이미지 ${index + 1}`;
-      const cover = document.createElement("button");
-      cover.type = "button";
-      cover.className = "posting-cover-button";
-      cover.textContent = image.id === coverId ? "대표 이미지" : "대표로 선택";
-      cover.setAttribute("aria-pressed", String(image.id === coverId));
-      cover.addEventListener("click", () => {
-        coverId = image.id;
-        renderImages();
-        scheduleAutosave();
-      });
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "posting-image-remove";
-      remove.setAttribute("aria-label", `${index + 1}번 이미지 삭제`);
-      remove.textContent = "×";
-      remove.addEventListener("click", () => {
-        editor.querySelectorAll("img[data-image-id]").forEach((node) => {
-          if (node.dataset.imageId === image.id) node.remove();
-        });
-        images = images.filter((entry) => entry.id !== image.id);
-        if (coverId === image.id) coverId = images[0]?.id || "";
-        renderImages();
-        scheduleAutosave();
-      });
-      const insert = document.createElement("button");
-      insert.type = "button";
-      insert.className = "posting-image-insert";
-      insert.textContent = "본문에 넣기";
-      insert.setAttribute("aria-label", `${index + 1}번 이미지 본문에 넣기`);
-      insert.addEventListener("click", () => {
-        insertImageAtCaret(image.id);
-        scheduleAutosave();
-        setStatus("커서 위치에 이미지를 넣었습니다. 이미 넣은 사진은 이 위치로 옮겨집니다.", "success");
-      });
-      item.append(preview, cover, insert, remove);
-      imageList.appendChild(item);
-    });
-    const bytes = images.reduce((total, image) => total + estimateDataUrlBytes(image.src), 0);
-    imageTotal.textContent = `${Math.round(bytes / 1024)}KB / 약 1MB`;
-    imageUpload.hidden = images.length >= MAX_IMAGES;
+    const ids = new Set(postContent.inlineImageIds(editor.innerHTML));
+    const current = images.filter(image => ids.has(image.id));
+    const bytes = current.reduce((total, image) => total + estimateDataUrlBytes(image.src), 0);
+    imageTotal.textContent = `사진 ${current.length}/3 · ${Math.round(bytes / 1024)}KB / 약 1MB`;
+    mediaEditor.refresh();
   }
 
   function rememberEditorRange() {
@@ -366,6 +331,7 @@
     selection.addRange(range);
     savedEditorRange = range.cloneRange();
     image.scrollIntoView?.({ block: "nearest" });
+    mediaEditor.refresh();
     return range;
   }
 
@@ -409,9 +375,11 @@
     return best;
   }
 
-  async function handleImageFiles(fileList) {
+  async function handleImageFiles(fileList, targetRange) {
     if (imageBusy) return;
-    let insertionRange = imageInsertionRange();
+    const usedIds = new Set(postContent.inlineImageIds(editor.innerHTML));
+    images = images.filter(image => usedIds.has(image.id));
+    let insertionRange = targetRange || imageInsertionRange();
     const files = Array.from(fileList || []).slice(0, MAX_IMAGES - images.length);
     if (!files.length) {
       if (images.length >= MAX_IMAGES) setStatus("이미지는 최대 3장까지 추가할 수 있습니다.", "error");
@@ -420,7 +388,7 @@
     imageBusy = true;
     inlineImageButton.disabled = true;
     publishButton.disabled = true;
-    imageUpload.classList.add("is-busy");
+    editor.setAttribute('aria-busy','true');
     setStatus("이미지를 브라우저 저장용으로 압축하고 있습니다…", "neutral", true);
     try {
       for (let index = 0; index < files.length; index += 1) {
@@ -445,7 +413,7 @@
       imageBusy = false;
       inlineImageButton.disabled = false;
       publishButton.disabled = false;
-      imageUpload.classList.remove("is-busy");
+      editor.removeAttribute('aria-busy');
       imageInput.value = "";
     }
   }
@@ -470,6 +438,11 @@
     }) : [];
     coverId = images.some((image) => image.id === draft.coverId) ? String(draft.coverId) : (images[0]?.id || "");
     editor.innerHTML = postContent.renderHtml(draft.bodyHtml || "", images);
+    const existingIds = new Set(postContent.inlineImageIds(editor.innerHTML));
+    images.filter(image => !existingIds.has(image.id)).forEach(image => {
+      const marker = document.createElement('img'); marker.dataset.imageId = image.id;
+      editor.insertAdjacentHTML('beforeend', postContent.renderHtml(marker.outerHTML, [image]));
+    });
     savedEditorRange = null;
     titleCount.textContent = String(titleInput.value.length);
     renderTypes();
@@ -612,6 +585,7 @@
     autosaveTimer = 0;
     titleInput.value = "";
     editor.replaceChildren();
+    mediaEditor.clearSelection();
     savedEditorRange = null;
     selectedType = "";
     categorySelect.value = "";
@@ -667,12 +641,11 @@
   document.addEventListener("selectionchange", rememberEditorRange);
   editor.addEventListener("keyup", rememberEditorRange);
   editor.addEventListener("pointerup", rememberEditorRange);
-  editor.addEventListener("input", () => { rememberEditorRange(); scheduleAutosave(); });
+  editor.addEventListener("input", () => { rememberEditorRange(); renderImages(); scheduleAutosave(); });
   inlineImageButton.addEventListener("mousedown", (event) => event.preventDefault());
   inlineImageButton.addEventListener("click", () => {
-    if (images.length >= MAX_IMAGES) {
-      setStatus("이미지는 최대 3장입니다. 첨부 이미지의 ‘본문에 넣기’로 위치를 옮기거나 사진을 삭제해주세요.", "error", true);
-      imageList.scrollIntoView?.({ block: "nearest" });
+    if (postContent.inlineImageIds(editor.innerHTML).length >= MAX_IMAGES) {
+      setStatus("이미지는 최대 3장입니다. 본문의 사진을 선택해 삭제한 뒤 추가해주세요.", "error", true);
       return;
     }
     rememberEditorRange();
@@ -682,11 +655,6 @@
     event.preventDefault();
     const text = event.clipboardData?.getData("text/plain") || "";
     document.execCommand("insertText", false, text);
-  });
-  editor.addEventListener("drop", (event) => {
-    event.preventDefault();
-    const text = event.dataTransfer?.getData("text/plain") || "";
-    if (text) document.execCommand("insertText", false, text);
   });
   page.querySelectorAll("[data-editor-command]").forEach((button) => {
     button.addEventListener("click", () => {

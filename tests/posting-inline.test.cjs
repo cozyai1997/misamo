@@ -20,6 +20,7 @@ function openComposer(savedState) {
   if (savedState) w.localStorage.setItem('misamo.prototype.v1', savedState);
   else w.MisamoStore.saveDraft({ title: '본문 이미지', bodyText: '앞뒤', bodyHtml: '<p>앞뒤</p>', images: [photo], tags: [] });
   w.eval(fs.readFileSync(path.join(root, 'post-content.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(root, 'editor-media.js'), 'utf8'));
   w.eval(fs.readFileSync(path.join(root, 'posting.js'), 'utf8'));
   return dom;
 }
@@ -32,9 +33,15 @@ function insertBetweenWords(w) {
   w.getSelection().removeAllRanges();
   w.getSelection().addRange(range);
   w.document.dispatchEvent(new w.Event('selectionchange'));
-  const button = w.document.querySelector('.posting-image-insert');
-  assert.ok(button, 'An attached image can be placed at the current caret');
-  button.click();
+  const image = editor.querySelector('img');
+  assert.ok(image, 'Legacy attachments are accessible directly inside the editor');
+  w.document.caretRangeFromPoint = () => range;
+  const transfer = { effectAllowed:'', setData(){}, getData(){return '';}, files:[] };
+  for(const [target,type] of [[image,'dragstart'],[editor,'drop']]) {
+    const event = new w.Event(type,{bubbles:true,cancelable:true});
+    Object.defineProperties(event,{dataTransfer:{value:transfer},clientX:{value:0},clientY:{value:0}});
+    target.dispatchEvent(event);
+  }
   return editor;
 }
 
@@ -87,9 +94,9 @@ test('deleting an attachment removes its inline reference and moving it does not
   const dom = openComposer(); const w = dom.window;
   try {
     const editor = insertBetweenWords(w);
-    w.document.querySelector('.posting-image-insert').click();
+    insertBetweenWords(w);
     assert.equal(editor.querySelectorAll('img').length, 1);
-    w.document.querySelector('.posting-image-remove').click();
+    w.document.querySelector('[data-media-delete]').click();
     w.document.querySelector('[data-save-draft]').click();
     assert.equal(editor.querySelectorAll('img').length, 0);
     assert.equal(w.MisamoStore.readDraft().images.length, 0);
@@ -98,13 +105,15 @@ test('deleting an attachment removes its inline reference and moving it does not
   } finally { w.close(); }
 });
 
-test('legacy drafts retain their unattached gallery images and text', () => {
+test('legacy attachments migrate into the body without retaining the lower attachment area', () => {
   const dom = openComposer(); const w = dom.window;
   try {
     assert.equal(w.document.querySelector('[data-post-editor]').textContent, '앞뒤');
     w.document.querySelector('[data-preview-post]').click();
-    assert.equal(w.document.querySelectorAll('[data-preview-body] img').length, 0);
-    assert.equal(w.document.querySelectorAll('[data-preview-images] img').length, 1);
+    assert.equal(w.document.querySelectorAll('[data-preview-body] img').length, 1);
+    assert.equal(w.document.querySelectorAll('[data-preview-images] img').length, 0);
+    assert.equal(w.document.querySelector('[data-image-list]'), null);
+    assert.equal(w.document.querySelector('[data-image-upload]'), null);
     assert.equal(w.MisamoStore.readDraft().images[0].src, photo.src);
   } finally { w.close(); }
 });
@@ -113,9 +122,30 @@ test('repeatedly moving then deleting a photo preserves the original paragraph s
   const dom = openComposer(); const w = dom.window;
   try {
     insertBetweenWords(w);
-    for (let i = 0; i < 4; i++) w.document.querySelector('.posting-image-insert').click();
-    w.document.querySelector('.posting-image-remove').click();
+    for (let i = 0; i < 4; i++) insertBetweenWords(w);
+    w.document.querySelector('[data-media-delete]').click();
     w.document.querySelector('[data-save-draft]').click();
     assert.equal(w.MisamoStore.readDraft().bodyHtml, '<p>앞뒤</p>');
+  } finally { w.close(); }
+});
+
+test('image alignment and percentage size persist through draft, preview and publishing', () => {
+  const dom=openComposer(), w=dom.window;
+  try {
+    const editor=insertBetweenWords(w), image=editor.querySelector('img');
+    image.dataset.imageWidth='45'; image.style.width='45%';
+    image.click();w.document.querySelector('[data-editor-align="right"]').click();
+    w.document.querySelector('[data-save-draft]').click();
+    const next=openComposer(w.localStorage.getItem('misamo.prototype.v1'));
+    try {
+      const d=next.window.document;
+      assert.equal(d.querySelector('[data-post-editor] img').style.width,'45%');
+      assert.equal(d.querySelector('[data-post-editor] img').dataset.align,'right');
+      d.querySelector('[data-preview-post]').click();
+      assert.equal(d.querySelector('[data-preview-body] img').style.width,'45%');
+      d.querySelector('[data-preview-close]').click();d.querySelector('[data-publish-post]').click();
+      assert.equal(d.querySelector('.feed-panel .post-rich-body img').dataset.align,'right');
+      assert.equal(d.querySelector('.feed-panel .post-rich-body img').style.width,'45%');
+    } finally { next.window.close(); }
   } finally { w.close(); }
 });

@@ -14,6 +14,24 @@ function setup(t) {
   return { document: dom.window.document, content: createMisamoContent(dom.window.document) };
 }
 
+test('image width and paragraph alignment survive safe serialization and rendering', (t) => {
+  const { content, document } = setup(t);
+  const saved = content.sanitizeHtml('<p data-align="right" style="color:red">글</p><img data-image-id="one" data-image-width="42.5" data-align="left" style="height:1px" src="bad">');
+  const holder = document.createElement('div');
+  holder.innerHTML = content.renderHtml(saved, [{ id: 'one', src: 'data:image/png;base64,YQ==' }]);
+  assert.equal(holder.querySelector('p').style.textAlign, 'right');
+  assert.equal(holder.querySelector('img').style.width, '42.5%');
+  assert.equal(holder.querySelector('img').dataset.align, 'left');
+  assert.ok(!saved.includes('style=') && !saved.includes('src='));
+});
+
+test('invalid size and alignment metadata cannot become CSS', (t) => {
+  const { content } = setup(t);
+  for (const width of ['0', '101', '-10', 'Infinity', '10;position:fixed']) {
+    assert.equal(content.sanitizeHtml(`<img data-image-id="one" data-image-width="${width}" data-align="justify">`), '<img data-image-id="one">');
+  }
+});
+
 test('legacy paragraphs, headings, emphasis and lists keep their formatting', (t) => {
   const { content } = setup(t);
   const html = '<h2>제목</h2><p>첫 <strong>문단</strong><br><em>기울임</em> <u>밑줄</u></p><ul><li>항목</li></ul>';
