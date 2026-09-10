@@ -213,3 +213,16 @@ test('IME composition records completed text as one reversible operation',t=>{
   d.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.textContent,'앞뒤');
   d.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.textContent,'앞뒤한');assert.ok(editor.querySelector('img'));
 });
+test('plain text paste replaces selected range, keeps line breaks and supports undo',t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=d.querySelector('[data-post-editor]'),range=d.createRange();
+  range.setStart(editor.querySelector('p').firstChild,1);range.setEnd(editor.querySelector('p').firstChild,2);
+  w.getSelection().removeAllRanges();w.getSelection().addRange(range);
+  const event=new w.Event('paste',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'clipboardData',{value:{getData:type=>type==='text/plain'?'복사\n<문장>':''}});
+  editor.dispatchEvent(event);
+  assert.equal(editor.textContent,'앞복사<문장>');assert.equal(editor.querySelectorAll('p br').length,1);
+  assert.ok(editor.querySelector('img'));
+  d.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.textContent,'앞뒤');
+  d.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.textContent,'앞복사<문장>');
+});

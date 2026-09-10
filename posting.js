@@ -72,6 +72,7 @@
         </div>
         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden data-image-input />
         <p class="posting-image-hint">사진을 끌어 넣거나 이동하세요. 모서리로 크기 조절 · 선택 후 Delete로 삭제 · Ctrl+Z로 복원 <span data-image-total></span></p>
+        <p class="posting-touch-hint">글을 길게 눌러 선택한 뒤, 양쪽 핸들로 범위를 조절하고 복사·붙여넣기하세요.</p>
       </section>
 
       <p class="posting-status" role="status" aria-live="polite" data-posting-status></p>
@@ -744,8 +745,19 @@
   });
   editor.addEventListener("paste", (event) => {
     event.preventDefault();
-    const text = event.clipboardData?.getData("text/plain") || "";
-    document.execCommand("insertText", false, text);
+    if(imageBusy || composing) return;
+    const text = (event.clipboardData?.getData("text/plain") || "").replace(/\r\n?/g,'\n');
+    if(!text) return;
+    rememberEditorRange();recordEdit('boundary');
+    const range=imageInsertionRange(),fragment=document.createDocumentFragment();
+    text.split('\n').forEach((line,index)=>{
+      if(index) fragment.append(document.createElement('br'));
+      fragment.append(document.createTextNode(line));
+    });
+    const last=fragment.lastChild;
+    range.deleteContents();range.insertNode(fragment);range.setStartAfter(last);range.collapse(true);
+    const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+    mediaEditor.clearSelection();rememberEditorRange();renderImages();recordEdit();scheduleAutosave();
   });
   page.querySelectorAll("[data-editor-command]").forEach((button) => {
     button.addEventListener('mousedown',event=>event.preventDefault());

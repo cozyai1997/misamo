@@ -33,7 +33,10 @@
       const selection = win.getSelection();
       if (!selection?.rangeCount) return;
       const range = selection.getRangeAt(0);
-      if (editor.contains(range.startContainer) && editor.contains(range.endContainer)) savedRange = range.cloneRange();
+      if (editor.contains(range.startContainer) && editor.contains(range.endContainer)) {
+        savedRange = range.cloneRange();
+        if(!range.collapsed && !dragging && !resizing) clearSelection();
+      }
       syncAlignment();
     }
     function restoreRange() {
@@ -140,6 +143,9 @@
       if(image) select(image);else clearSelection();
     });
     editor.addEventListener('focusin', event => { if(event.target.matches?.('img[data-image-id]')) select(event.target); });
+    editor.addEventListener('pointerdown',event=>{
+      if(event.pointerType==='touch' && !event.target.closest?.('img[data-image-id]')) clearSelection();
+    });
     doc.addEventListener('pointerdown', event => { if(!editor.contains(event.target) && !frame.contains(event.target) && !toolbar.contains(event.target)) clearSelection(); });
     doc.addEventListener('selectionchange',rememberRange);
     toolbar.querySelectorAll('[data-editor-align]').forEach(button => {

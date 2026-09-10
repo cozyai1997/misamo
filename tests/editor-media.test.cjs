@@ -116,3 +116,14 @@ test('locked editor rejects text and file drops during an image transaction',t=>
   transfer.files=[new w.File(['x'],'x.png',{type:'image/png'})];drag(editor,'drop');
   assert.equal(files.length,0);
 });
+test('touch selection preserves native behavior and dismisses photo controls',t=>{
+  const {w,d,editor}=setup(t);editor.querySelector('img').click();
+  const touch=new w.Event('pointerdown',{bubbles:true,cancelable:true});Object.defineProperty(touch,'pointerType',{value:'touch'});
+  editor.querySelector('p').dispatchEvent(touch);
+  assert.equal(touch.defaultPrevented,false);assert.equal(d.querySelector('.media-selection').hidden,true);
+  editor.querySelector('img').click();
+  const range=d.createRange();range.selectNodeContents(editor.querySelector('p'));
+  w.getSelection().addRange(range);d.dispatchEvent(new w.Event('selectionchange'));
+  assert.equal(d.querySelector('.media-selection').hidden,true);
+  for(const type of ['contextmenu','selectstart','copy']) {const event=new w.Event(type,{bubbles:true,cancelable:true});editor.dispatchEvent(event);assert.equal(event.defaultPrevented,false);}
+});
