@@ -71,7 +71,7 @@
           <div class="posting-editor" contenteditable="true" role="textbox" aria-label="본문" aria-multiline="true" data-placeholder="내용을 입력하거나 사진을 여기에 끌어다 놓으세요." data-post-editor></div>
         </div>
         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden data-image-input />
-        <p class="posting-image-hint">사진을 끌어 넣거나 이동하세요. 사진 선택 후 모서리를 끌면 크기를 조절할 수 있어요. <span data-image-total></span></p>
+        <p class="posting-image-hint">사진을 끌어 넣거나 이동하세요. 모서리로 크기 조절 · 선택 후 Delete로 삭제 · Ctrl+Z로 복원 <span data-image-total></span></p>
       </section>
 
       <p class="posting-status" role="status" aria-live="polite" data-posting-status></p>
@@ -134,17 +134,88 @@
   let imageBusy = false;
   let savedEditorRange = null;
   let writingActive = window.location.hash === "#write";
+  let editHistory = [], historyIndex = -1, restoringHistory = false, composing = false;
+  let lastEditKind = '', lastEditTime = 0;
   const mediaEditor = window.createMisamoEditor({
     editor, toolbar: page.querySelector('.posting-toolbar'),
-    onChange: () => { rememberEditorRange(); renderImages(); scheduleAutosave(); },
+    onBeforeChange: () => recordEdit('boundary'),
+    onChange: () => { rememberEditorRange(); renderImages(); recordEdit(); scheduleAutosave(); },
     onFiles: (files, range) => handleImageFiles(files, range),
     onDelete: (id) => {
       editor.querySelectorAll('img[data-image-id]').forEach(node => { if(node.dataset.imageId === id) node.remove(); });
       images = images.filter(image => image.id !== id);
       if(coverId === id) coverId = images[0]?.id || '';
-      renderImages(); scheduleAutosave();
+      renderImages(); recordEdit(); scheduleAutosave();
     },
   });
+
+  function selectionBookmark() {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return null;
+    const range = selection.getRangeAt(0);
+    function path(node) {
+      if(!editor.contains(node)) return null;
+      const result=[];
+      while(node && node!==editor) { result.unshift(Array.prototype.indexOf.call(node.parentNode.childNodes,node));node=node.parentNode; }
+      return node===editor ? result : null;
+    }
+    const start=path(range.startContainer),end=path(range.endContainer);
+    return start && end ? {start,end,startOffset:range.startOffset,endOffset:range.endOffset} : null;
+  }
+  function editorSnapshot() {
+    const draft=captureDraft();
+    return {html:draft.bodyHtml,images:draft.images,coverId:draft.coverId,selection:selectionBookmark(),selectedId:mediaEditor.selectedId()};
+  }
+  function updateHistoryButtons() {
+    page.querySelector('[data-editor-command="undo"]').disabled=imageBusy || historyIndex<=0;
+    page.querySelector('[data-editor-command="redo"]').disabled=imageBusy || historyIndex>=editHistory.length-1;
+  }
+  function resetEditHistory() {
+    editHistory=[editorSnapshot()];historyIndex=0;lastEditKind='';updateHistoryButtons();
+  }
+  function recordEdit(kind='action') {
+    if(restoringHistory || composing || historyIndex<0) return;
+    const next=editorSnapshot(),current=editHistory[historyIndex],now=Date.now();
+    if(current.html===next.html) {
+      current.selection=next.selection || current.selection;current.selectedId=next.selectedId;
+      if(kind!=='typing') lastEditKind='';
+      return;
+    }
+    const merge=kind==='typing' && lastEditKind==='typing' && now-lastEditTime<700 && historyIndex===editHistory.length-1 && historyIndex>0;
+    editHistory.splice(historyIndex+1);
+    if(merge) editHistory[historyIndex]=next;
+    else { editHistory.push(next);historyIndex++; }
+    if(editHistory.length>60) {editHistory.shift();historyIndex--;}
+    lastEditKind=kind;lastEditTime=now;updateHistoryButtons();
+  }
+  function restoreBookmark(bookmark) {
+    const range=document.createRange();range.selectNodeContents(editor);range.collapse(false);
+    const locate=path=>path.reduce((node,index)=>node?.childNodes[index],editor);
+    if(bookmark) {
+      const start=locate(bookmark.start),end=locate(bookmark.end);
+      if(start && end) try {
+        range.setStart(start,Math.min(bookmark.startOffset,start.nodeType===3?start.length:start.childNodes.length));
+        range.setEnd(end,Math.min(bookmark.endOffset,end.nodeType===3?end.length:end.childNodes.length));
+      } catch(_error) { range.selectNodeContents(editor);range.collapse(false); }
+    }
+    const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);savedEditorRange=range.cloneRange();
+  }
+  function travelHistory(direction) {
+    if(imageBusy || composing || mediaEditor.isInteracting()) return;
+    recordEdit('boundary');
+    const nextIndex=historyIndex+direction;
+    if(nextIndex<0 || nextIndex>=editHistory.length) return;
+    restoringHistory=true;
+    try {
+      historyIndex=nextIndex;const state=editHistory[historyIndex];
+      images=state.images.slice();coverId=state.coverId;
+      mediaEditor.clearSelection();editor.innerHTML=postContent.renderHtml(state.html,images);
+      editor.focus({preventScroll:true});restoreBookmark(state.selection);renderImages();
+      const selected=Array.from(editor.querySelectorAll('img[data-image-id]')).find(img=>img.dataset.imageId===state.selectedId);
+      if(selected) mediaEditor.select(selected);
+      lastEditKind='';updateHistoryButtons();scheduleAutosave();
+    } finally {restoringHistory=false;}
+  }
 
   function setStatus(message, tone, sticky) {
     window.clearTimeout(statusTimer);
@@ -386,6 +457,10 @@
       return;
     }
     imageBusy = true;
+    recordEdit('boundary');
+    editor.setAttribute('contenteditable','false');
+    page.querySelectorAll('.posting-toolbar button').forEach(button=>{button.disabled=true;});
+    updateHistoryButtons();
     inlineImageButton.disabled = true;
     publishButton.disabled = true;
     editor.setAttribute('aria-busy','true');
@@ -411,6 +486,9 @@
       setStatus(error?.message || "이미지를 처리하지 못했습니다.", "error", true);
     } finally {
       imageBusy = false;
+      editor.setAttribute('contenteditable','true');
+      page.querySelectorAll('.posting-toolbar button').forEach(button=>{button.disabled=false;});
+      recordEdit();updateHistoryButtons();
       inlineImageButton.disabled = false;
       publishButton.disabled = false;
       editor.removeAttribute('aria-busy');
@@ -598,6 +676,7 @@
     renderTypes();
     renderTags();
     renderImages();
+    resetEditHistory();
   }
 
   function publishPost() {
@@ -641,7 +720,19 @@
   document.addEventListener("selectionchange", rememberEditorRange);
   editor.addEventListener("keyup", rememberEditorRange);
   editor.addEventListener("pointerup", rememberEditorRange);
-  editor.addEventListener("input", () => { rememberEditorRange(); renderImages(); scheduleAutosave(); });
+  editor.addEventListener('compositionstart',()=>{recordEdit('boundary');composing=true;});
+  editor.addEventListener('compositionend',()=>{composing=false;recordEdit('action');scheduleAutosave();});
+  editor.addEventListener('beforeinput',event=>{
+    if(event.inputType==='historyUndo' || event.inputType==='historyRedo') {
+      event.preventDefault();travelHistory(event.inputType==='historyUndo'?-1:1);
+    }
+  });
+  page.querySelector('.posting-editor-block').addEventListener('keydown',event=>{
+    if(!(event.ctrlKey || event.metaKey) || event.altKey || event.target===titleInput || event.isComposing) return;
+    const key=event.key.toLowerCase();
+    if(key==='z' || key==='y') {event.preventDefault();event.stopPropagation();travelHistory(key==='y' || event.shiftKey?1:-1);}
+  },true);
+  editor.addEventListener("input", event => { rememberEditorRange(); renderImages(); recordEdit(event.inputType==='insertText'?'typing':'action'); scheduleAutosave(); });
   inlineImageButton.addEventListener("mousedown", (event) => event.preventDefault());
   inlineImageButton.addEventListener("click", () => {
     if (postContent.inlineImageIds(editor.innerHTML).length >= MAX_IMAGES) {
@@ -657,9 +748,15 @@
     document.execCommand("insertText", false, text);
   });
   page.querySelectorAll("[data-editor-command]").forEach((button) => {
+    button.addEventListener('mousedown',event=>event.preventDefault());
     button.addEventListener("click", () => {
+      if(button.dataset.editorCommand==='undo' || button.dataset.editorCommand==='redo') {
+        travelHistory(button.dataset.editorCommand==='undo'?-1:1);return;
+      }
+      recordEdit('boundary');
       editor.focus();
       document.execCommand(button.dataset.editorCommand, false, button.dataset.commandValue || null);
+      recordEdit();
       scheduleAutosave();
     });
   });
@@ -674,7 +771,9 @@
       const url = new URL(href.trim());
       if (url.protocol !== "https:") throw new Error();
       editor.focus();
+      recordEdit('boundary');
       document.execCommand("createLink", false, url.href);
+      recordEdit();
       scheduleAutosave();
     } catch (_error) {
       setStatus("올바른 HTTPS 주소를 입력해주세요.", "error");
@@ -726,5 +825,6 @@
   renderTags();
   renderImages();
   try { applyDraft(store?.readDraft?.()); } catch (error) { setStatus(error?.message || "임시저장 글을 불러오지 못했습니다.", "error", true); }
+  resetEditHistory();
   hydratePosts();
 })();

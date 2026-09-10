@@ -96,7 +96,7 @@ test('deleting an attachment removes its inline reference and moving it does not
     const editor = insertBetweenWords(w);
     insertBetweenWords(w);
     assert.equal(editor.querySelectorAll('img').length, 1);
-    w.document.querySelector('[data-media-delete]').click();
+    editor.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}));
     w.document.querySelector('[data-save-draft]').click();
     assert.equal(editor.querySelectorAll('img').length, 0);
     assert.equal(w.MisamoStore.readDraft().images.length, 0);
@@ -123,7 +123,7 @@ test('repeatedly moving then deleting a photo preserves the original paragraph s
   try {
     insertBetweenWords(w);
     for (let i = 0; i < 4; i++) insertBetweenWords(w);
-    w.document.querySelector('[data-media-delete]').click();
+    w.document.querySelector('[data-post-editor]').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}));
     w.document.querySelector('[data-save-draft]').click();
     assert.equal(w.MisamoStore.readDraft().bodyHtml, '<p>앞뒤</p>');
   } finally { w.close(); }
@@ -148,4 +148,68 @@ test('image alignment and percentage size persist through draft, preview and pub
       assert.equal(d.querySelector('.feed-panel .post-rich-body img').style.width,'45%');
     } finally { next.window.close(); }
   } finally { w.close(); }
+});
+test('Delete removes a selected photo and keyboard undo/redo restores the photo source', t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=d.querySelector('[data-post-editor]');
+  assert.equal(d.querySelector('[data-media-delete]'),null);
+  editor.querySelector('img').click();
+  const key=(key,extra={})=>editor.dispatchEvent(new w.KeyboardEvent('keydown',{key,bubbles:true,cancelable:true,...extra}));
+  key('Delete');assert.equal(editor.querySelector('img'),null);
+  key('z',{ctrlKey:true});assert.equal(editor.querySelector('img')?.getAttribute('src'),photo.src);
+  key('y',{ctrlKey:true});assert.equal(editor.querySelector('img'),null);
+  key('z',{ctrlKey:true});d.querySelector('[data-save-draft]').click();
+  assert.equal(w.MisamoStore.readDraft().images[0].src,photo.src);
+});
+test('toolbar undo and redo restore photo movement and alignment in chronological order',t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=insertBetweenWords(w);
+  d.querySelector('[data-editor-align="right"]').click();
+  d.querySelector('[data-editor-command="undo"]').click();
+  assert.equal(editor.querySelector('img').dataset.align,undefined);
+  assert.equal(editor.querySelector('img').previousSibling.textContent,'앞');
+  d.querySelector('[data-editor-command="undo"]').click();
+  assert.equal(editor.querySelector('img').parentElement,editor);
+  d.querySelector('[data-editor-command="redo"]').click();
+  assert.equal(editor.querySelector('img').previousSibling.textContent,'앞');
+  d.querySelector('[data-editor-command="redo"]').click();
+  assert.equal(editor.querySelector('img').dataset.align,'right');
+});
+test('typing after undo clears redo and does not lose the restored image',t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=d.querySelector('[data-post-editor]');editor.querySelector('img').click();
+  editor.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}));
+  d.querySelector('[data-editor-command="undo"]').click();
+  editor.querySelector('p').append('새 글');editor.dispatchEvent(new w.InputEvent('input',{bubbles:true,inputType:'insertText'}));
+  assert.equal(d.querySelector('[data-editor-command="redo"]').disabled,true);
+  d.querySelector('[data-editor-command="undo"]').click();
+  assert.equal(editor.textContent,'앞뒤');assert.ok(editor.querySelector('img'));
+});
+test('history buttons work when browser selection is outside the editor',t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=insertBetweenWords(w),range=d.createRange();
+  range.selectNodeContents(d.querySelector('h1'));w.getSelection().removeAllRanges();w.getSelection().addRange(range);
+  d.querySelector('[data-editor-command="undo"]').click();
+  assert.equal(editor.querySelector('img').parentElement,editor);
+});
+test('one resize gesture is one undo step and redo retains percentage width',t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=d.querySelector('[data-post-editor]'),img=editor.querySelector('img');
+  editor.getBoundingClientRect=()=>({width:800});img.getBoundingClientRect=()=>({width:400,height:200,left:0,top:0});img.click();
+  d.querySelector('[data-media-resize="se"]').dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:400,clientY:200}));
+  for(const x of [360,320,280]) d.dispatchEvent(new w.MouseEvent('pointermove',{bubbles:true,clientX:x,clientY:200}));
+  d.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true}));
+  const width=img.dataset.imageWidth;assert.ok(Number(width)<50);
+  d.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.querySelector('img').dataset.imageWidth,undefined);
+  d.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.querySelector('img').dataset.imageWidth,width);
+});
+test('IME composition records completed text as one reversible operation',t=>{
+  const dom=openComposer(),w=dom.window,d=w.document;t.after(()=>w.close());
+  const editor=d.querySelector('[data-post-editor]'),p=editor.querySelector('p');
+  editor.dispatchEvent(new w.CompositionEvent('compositionstart',{bubbles:true}));
+  p.textContent='앞뒤ㅎ';editor.dispatchEvent(new w.InputEvent('input',{bubbles:true,inputType:'insertCompositionText',isComposing:true}));
+  p.textContent='앞뒤한';editor.dispatchEvent(new w.InputEvent('input',{bubbles:true,inputType:'insertCompositionText',isComposing:true}));
+  editor.dispatchEvent(new w.CompositionEvent('compositionend',{bubbles:true,data:'한'}));
+  d.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.textContent,'앞뒤');
+  d.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.textContent,'앞뒤한');assert.ok(editor.querySelector('img'));
 });

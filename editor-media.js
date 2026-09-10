@@ -1,11 +1,11 @@
 (function () {
   'use strict';
-  window.createMisamoEditor = function ({ editor, toolbar, onChange, onFiles, onDelete }) {
+  window.createMisamoEditor = function ({ editor, toolbar, onChange, onFiles, onDelete, onBeforeChange = () => {} }) {
     const doc = editor.ownerDocument, win = doc.defaultView, surface = editor.parentElement;
     let selected = null, savedRange = null, dragging = null, resizing = null;
     const frame = doc.createElement('div');
     frame.className = 'media-selection'; frame.hidden = true;
-    frame.innerHTML = '<div class="media-actions"><span data-media-size></span><button type="button" data-media-delete aria-label="선택 이미지 삭제">사진 삭제</button></div>' +
+    frame.innerHTML = '<div class="media-actions"><span data-media-size></span></div>' +
       ['nw', 'ne', 'sw', 'se'].map(c => `<button type="button" class="media-handle ${c}" data-media-resize="${c}" aria-label="이미지 크기 조절 ${c}"></button>`).join('');
     const indicator = doc.createElement('div');
     indicator.className = 'media-drop-line'; indicator.hidden = true;
@@ -50,7 +50,9 @@
       toolbar.querySelectorAll('[data-editor-align]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.editorAlign === align)));
     }
     function alignContent(align) {
+      if(editor.getAttribute('contenteditable')==='false') return;
       if (!['left','center','right'].includes(align)) return;
+      onBeforeChange();
       if (selected && editor.contains(selected)) {
         selected.dataset.align = align;
         selected.style.marginLeft = align === 'left' ? '0' : 'auto';
@@ -144,25 +146,27 @@
       button.addEventListener('mousedown',e=>e.preventDefault());
       button.addEventListener('click',()=>alignContent(button.dataset.editorAlign));
     });
-    frame.querySelector('[data-media-delete]').addEventListener('click',()=>{
-      if(!selected) return;const id=selected.dataset.imageId;clearSelection();onDelete(id);editor.focus();
-    });
     editor.addEventListener('keydown',event=>{
+      if(editor.getAttribute('contenteditable')==='false') return;
       if(event.key==='Escape') clearSelection();
       if (/^(Arrow|Home|End|Page)/.test(event.key) || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase()==='a')) clearSelection();
-      if(selected && ['Delete','Backspace'].includes(event.key)) {event.preventDefault();const id=selected.dataset.imageId;clearSelection();onDelete(id);}
+      if(selected && ['Delete','Backspace'].includes(event.key)) {event.preventDefault();onBeforeChange();const id=selected.dataset.imageId;clearSelection();onDelete(id);}
     });
     editor.addEventListener('dragstart', event=>{
+      if(editor.getAttribute('contenteditable')==='false') {event.preventDefault();return;}
       const image=event.target.closest?.('img[data-image-id]');if(!image) return;
+      onBeforeChange();
       dragging=image;select(image);image.classList.add('is-dragging');surface.classList.add('media-dragging');
       event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('application/x-misamo-image',image.dataset.imageId);
     });
     editor.addEventListener('dragover',event=>{
+      if(editor.getAttribute('contenteditable')==='false') {event.preventDefault();return;}
       if(!supportsDrop(event)) return;event.preventDefault();event.dataTransfer.dropEffect=dragging?'move':'copy';showDropLine(event,dropRange(event));
     });
     editor.addEventListener('dragleave',event=>{ if(!editor.contains(event.relatedTarget)) indicator.hidden=true; });
     editor.addEventListener('dragend',finishDrag);
     editor.addEventListener('drop',event=>{
+      if(editor.getAttribute('contenteditable')==='false') {event.preventDefault();finishDrag();return;}
       event.preventDefault();indicator.hidden=true;const range=dropRange(event);
       if(dragging && editor.contains(dragging)) {
         const image=dragging;finishDrag();
@@ -174,12 +178,13 @@
       } else if(event.dataTransfer?.files?.length) onFiles(Array.from(event.dataTransfer.files),range);
       else {
         const text=event.dataTransfer?.getData('text/plain');
-        if(text) {const node=doc.createTextNode(text);range.insertNode(node);onChange();}
+        if(text) {onBeforeChange();const node=doc.createTextNode(text);range.insertNode(node);onChange();}
       }
     });
     frame.querySelectorAll('[data-media-resize]').forEach(handle=>{
       handle.addEventListener('pointerdown',event=>{
-        if(!selected || event.button!==0) return;event.preventDefault();event.stopPropagation();
+        if(!selected || event.button!==0 || editor.getAttribute('contenteditable')==='false') return;event.preventDefault();event.stopPropagation();
+        onBeforeChange();
         const rect=selected.getBoundingClientRect(), er=editor.getBoundingClientRect(), style=win.getComputedStyle(editor);
         const max=er.width-(parseFloat(style.paddingLeft)||0)-(parseFloat(style.paddingRight)||0);
         if(!max || !rect.width) return;
@@ -201,6 +206,6 @@
     win.addEventListener('resize',updateFrame);win.addEventListener('scroll',updateFrame,true);
     win.addEventListener('misamo:view',()=>{clearSelection();finishDrag();});
     refresh();syncAlignment();
-    return { refresh, clearSelection, select };
+    return { refresh, clearSelection, select, selectedId: () => selected?.dataset.imageId || '', isInteracting: () => !!(dragging || resizing) };
   };
 })();

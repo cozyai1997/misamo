@@ -360,11 +360,11 @@
 .media-handle.sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
 .media-handle.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
 .media-actions { position: absolute; bottom: calc(100% + 5px); left: -2px; display: flex; align-items: center; gap: 7px; padding: 2px 4px; max-width: calc(100vw - 70px); background: #ffffffb3; border: 0; white-space: nowrap; font-size: 10px; color: #9298a3; }
+.media-actions { display: none; }
+.media-resizing .media-actions { display: flex; }
 .media-actions [data-media-size] { display: none; }
 .media-resizing .media-actions [data-media-size] { display: inline; }
-.media-resizing .media-actions button { display: none; }
-.media-actions button { pointer-events: auto; background: transparent; color: #969ca6; border: 0; padding: 3px 5px; cursor: pointer; font: inherit; }
-.media-actions button:hover, .media-actions button:focus-visible { color: #535d70; }
+.posting-toolbar button:disabled { opacity: 0.3; cursor: default; }
 .media-drop-line { position: absolute; border-top: 1px solid #7f8c9fad; pointer-events: none; z-index: 4; }
 .media-drop-line[data-kind="caret"] { border: 0; background: #668a78; box-shadow: 0 0 0 1px #ffffffb3; }
 .media-dragging .media-selection { visibility: hidden; }

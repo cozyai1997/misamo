@@ -25,7 +25,7 @@ test('selecting a photo allows alignment and deletion without editor control tex
   d.querySelector('[data-editor-align="right"]').click();
   assert.equal(editor.querySelector('img').dataset.align,'right');
   assert.equal(editor.textContent,'앞뒤');
-  d.querySelector('[data-media-delete]').click();
+  editor.dispatchEvent(new d.defaultView.KeyboardEvent('keydown',{key:'Delete',bubbles:true,cancelable:true}));
   assert.equal(editor.querySelector('img'),null);
   assert.ok(changes.length);
 });
@@ -108,4 +108,11 @@ test('paragraph gap uses a horizontal boundary and inserts outside text', t=>{
   const img=editor.querySelector('img');drag(img,'dragstart');drag(editor,'dragover',120,48);
   assert.equal(d.querySelector('.media-drop-line').dataset.kind,'block');
   drag(editor,'drop',120,48);assert.equal(img.parentElement,editor);assert.equal(img.previousSibling,p);
+});
+test('locked editor rejects text and file drops during an image transaction',t=>{
+  const {w,editor,transfer,drag,files}=setup(t);editor.setAttribute('contenteditable','false');
+  const before=editor.innerHTML;transfer.data['text/plain']='unexpected';drag(editor,'drop');
+  assert.equal(editor.innerHTML,before);
+  transfer.files=[new w.File(['x'],'x.png',{type:'image/png'})];drag(editor,'drop');
+  assert.equal(files.length,0);
 });
