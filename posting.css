@@ -340,7 +340,7 @@
   max-height: 640px;
   object-fit: contain;
   margin: 16px auto;
-  border-radius: 10px;
+  border-radius: 0;
 }
 
 .posting-image-insert {
