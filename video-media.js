@@ -8,7 +8,8 @@
 
   const MAX_BYTES = 100 * 1024 * 1024;
   const RATIOS = Object.freeze(['4:3', '1:1', '9:16', '16:9']);
-  const MIME_TYPES = ['video/mp4', 'video/webm'];
+  const MIME_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+  const EXTENSION_TYPES = Object.freeze({mp4:'video/mp4', webm:'video/webm', mov:'video/quicktime'});
   const DB_NAME = 'misamo.media.v1';
   const figures = new WeakMap();
   const active = new Set();
@@ -27,8 +28,8 @@
     if (!RATIOS.includes(ratio)) return null;
     const record = { id, source, name:name.trim(), mime, size, width, height, duration, ratio };
     if (source === 'asset') {
-      if (typeof value.src !== 'string' || !/^assets\/local-test-media\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,159}\.(mp4|webm)$/.test(value.src) || value.src.includes('..')) return null;
-      if (!value.src.endsWith(mime === 'video/mp4' ? '.mp4' : '.webm')) return null;
+      if (typeof value.src !== 'string' || !/^assets\/local-test-media\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,159}\.(mp4|webm|mov)$/.test(value.src) || value.src.includes('..')) return null;
+      if (EXTENSION_TYPES[value.src.split('.').pop()] !== mime) return null;
       record.src = value.src;
     } else if (value.src != null && value.src !== '') return null;
     return record;
@@ -135,12 +136,11 @@
     return new Promise((resolve, reject) => {
       const video = root.document.createElement('video');
       let url = null, metadata = null, settled = false;
-      const timer = root.setTimeout(() => finish(new Error('동영상 확인 시간이 초과되었습니다. 더 짧거나 작은 MP4 또는 WebM 파일로 다시 시도해주세요.')), 25000);
+      const timer = root.setTimeout(() => finish(new Error('동영상 확인 시간이 초과되었습니다. 파일을 기기에 다운로드한 뒤 다시 선택하거나 더 작은 영상을 선택해주세요.')), 25000);
       function finish(error) {
         if (settled) return;
         settled = true; root.clearTimeout(timer);
         video.removeEventListener('loadedmetadata', onMetadata);
-        video.removeEventListener('loadeddata', onDecoded);
         video.removeEventListener('error', onError);
         clearMedia(video);
         if (url) root.URL.revokeObjectURL(url);
@@ -149,22 +149,19 @@
       function onMetadata() {
         const {videoWidth:width, videoHeight:height, duration} = video;
         if (![width, height, duration].every(number => Number.isFinite(number) && number > 0)) {
-          finish(new Error('동영상의 길이 또는 화면 크기를 읽을 수 없습니다. 정상적인 MP4 또는 WebM 파일을 선택해주세요.'));
+          finish(new Error('동영상의 길이 또는 화면 크기를 읽을 수 없습니다. 정상적인 MP4, WebM 또는 MOV 파일을 선택해주세요.'));
           return;
         }
         metadata = {width, height, duration};
+        finish();
       }
-      function onDecoded() {
-        onMetadata();
-        if (!settled && metadata) finish();
-      }
-      function onError() { finish(new Error('이 동영상을 재생할 수 없습니다. 손상된 파일인지 확인하거나 지원되는 코덱의 MP4 또는 WebM 파일을 선택해주세요.')); }
+      function onError() { finish(new Error('이 브라우저에서 동영상을 읽거나 재생할 수 없습니다. 파일 상태를 확인하거나 H.264 방식의 MP4 영상으로 다시 선택해주세요.')); }
       try {
-        if (!video.canPlayType(file.type)) { onError(); return; }
-        // A decoded first frame catches containers whose metadata exists but codec is unsupported.
-        video.preload = 'auto'; video.muted = true; video.playsInline = true;
+        // Mobile browsers may defer decoded frames until playback. Validate dimensions
+        // and duration without requiring loadeddata; the mounted player reports decode errors.
+        // Probe the actual file: canPlayType alone is inconclusive for some MOV codecs.
+        video.preload = 'metadata'; video.muted = true; video.playsInline = true;
         video.addEventListener('loadedmetadata', onMetadata);
-        video.addEventListener('loadeddata', onDecoded);
         video.addEventListener('error', onError);
         url = root.URL.createObjectURL(file); video.src = url; video.load();
       } catch (_) { finish(new Error('동영상을 확인할 수 없습니다. 브라우저를 새로고침한 뒤 다시 시도해주세요.')); }
@@ -172,16 +169,23 @@
   }
 
   async function importFile(file) {
-    if (!(file instanceof root.Blob) || !MIME_TYPES.includes(file.type)) throw new Error('MP4 또는 WebM 동영상 파일을 선택해주세요.');
+    if (!(file instanceof root.Blob)) throw new Error('MP4, WebM 또는 MOV 동영상 파일을 선택해주세요.');
+    // Some mobile document pickers omit the MIME type. Only use an allowlisted
+    // extension for absent/generic types; still inspect the actual video before saving.
+    const extension = String(file.name || '').split('.').pop().toLowerCase();
+    const mime = MIME_TYPES.includes(file.type) ? file.type
+      : ['', 'application/octet-stream'].includes(file.type) ? EXTENSION_TYPES[extension] : null;
+    if (!mime) throw new Error('MP4, WebM 또는 MOV 동영상 파일을 선택해주세요.');
     if (!file.size) throw new Error('비어 있는 동영상은 첨부할 수 없습니다.');
     if (file.size > MAX_BYTES) throw new Error('동영상은 파일당 100MB까지 첨부할 수 있습니다.');
     if (!root.document || !root.URL?.createObjectURL) throw new Error('이 환경에서는 동영상을 첨부할 수 없습니다. 웹 브라우저에서 다시 시도해주세요.');
-    const measured = await inspectFile(file);
+    const blob = file.type === mime ? file : file.slice(0, file.size, mime);
+    const measured = await inspectFile(blob);
     const id = root.crypto?.randomUUID ? root.crypto.randomUUID() : `video-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const name = String(file.name || (file.type === 'video/mp4' ? '동영상.mp4' : '동영상.webm')).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 240) || '동영상';
-    const record = cleanVideo({id, source:'indexeddb', name, mime:file.type, size:file.size, ...measured, ratio:'4:3'});
+    const name = String(file.name || `동영상.${Object.keys(EXTENSION_TYPES).find(key => EXTENSION_TYPES[key] === mime)}`).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 240) || '동영상';
+    const record = cleanVideo({id, source:'indexeddb', name, mime, size:file.size, ...measured, ratio:'4:3'});
     if (!record) throw new Error('동영상 정보를 확인하지 못했습니다. 다른 파일을 선택해주세요.');
-    await storeBlob(record.id, file);
+    await storeBlob(record.id, blob);
     return record;
   }
 

@@ -54,6 +54,12 @@ function setRatio(w, value) {
   select.dispatchEvent(new w.Event('change', { bubbles: true }));
 }
 
+test('phone video picker offers MOV files alongside MP4 and WebM', t => {
+  const w=openComposer(t), input=w.document.querySelector('[data-video-input]');
+  assert.ok(input.accept.split(',').includes('video/quicktime'));
+  assert.ok(input.accept.split(',').includes('.mov'));
+});
+
 function removeVideo(w) {
   const control = w.document.querySelector('[data-inline-video-remove]') || w.document.querySelector('[data-media-remove^="video:"]');
   assert.ok(control, 'The attachment exposes its remove control');

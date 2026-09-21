@@ -71,13 +71,14 @@ test('asset availability checks the actual same-origin file and rejects missing 
 
 test('import rejects unsupported and oversized files before allocating URLs or writing', async t => {
   const {w,api,created,writes}=setup(t);
-  await assert.rejects(api.importFile(new w.File(['x'],'x.mov',{type:'video/quicktime'})), /MP4|WebM/);
+  await assert.rejects(api.importFile(new w.File(['x'],'x.avi',{type:'video/x-msvideo'})), /MP4|WebM/);
+  await assert.rejects(api.importFile(new w.File(['x'],'x.mp4',{type:'image/jpeg'})), /MP4|WebM/);
   const large=new w.File(['x'],'x.mp4',{type:'video/mp4'});Object.defineProperty(large,'size',{value:104857601});
   await assert.rejects(api.importFile(large), /100/);
   assert.equal(created.length,0);assert.equal(writes.length,0);
 });
 
-test('import requires a decoded frame and resolves only after the IndexedDB transaction commits', async t => {
+test('mobile metadata-only loading imports without decoded frames and waits for IndexedDB commit', async t => {
   const {w,d,api,writes,created,revoked}=setup(t);
   const original=d.createElement.bind(d), probes=[];
   d.createElement=function(name,...args){const element=original(name,...args);if(name==='video')probes.push(element);return element;};
@@ -85,15 +86,42 @@ test('import requires a decoded frame and resolves only after the IndexedDB tran
   let resolved=false;
   const importing=api.importFile(file).then(value=>{resolved=true;return value;});
   await tick();const probe=probes[0];assert.ok(probe);
-  Object.defineProperties(probe,{videoWidth:{value:1920},videoHeight:{value:1080},duration:{value:4.25},readyState:{value:2}});
+  Object.defineProperties(probe,{videoWidth:{value:1920},videoHeight:{value:1080},duration:{value:4.25},readyState:{value:1}});
   probe.dispatchEvent(new w.Event('loadedmetadata'));await tick();
   assert.equal(resolved,false);
-  probe.dispatchEvent(new w.Event('loadeddata'));await tick();
   assert.equal(writes.length,1);assert.equal(resolved,false,'put success alone must not report saved');
   assert.equal(writes[0].row.blob,file);
   writes[0].transaction.oncomplete();const record=await importing;
   assert.equal(record.name,'store.mp4');assert.equal(record.ratio,'4:3');assert.equal(record.duration,4.25);
   assert.equal(record.src,undefined);assert.deepEqual(revoked,[created[0].url]);
+});
+
+for (const [filename,mime,expected] of [['PHONE.MP4','','video/mp4'],['PHONE.webm','application/octet-stream','video/webm'],['PHONE.MOV','video/quicktime','video/quicktime'],['PHONE.MOV','','video/quicktime']]) test(`mobile file ${filename} (${mime || 'missing MIME'}) keeps a readable stored blob`, async t => {
+  const {w,d,api,writes,rows}=setup(t);
+  const original=d.createElement.bind(d);let probe;
+  d.createElement=function(name,...args){const element=original(name,...args);if(name==='video')probe=element;return element;};
+  const file=new w.File(['valid video'],filename,{type:mime});
+  if (expected === 'video/quicktime') w.HTMLMediaElement.prototype.canPlayType=()=>'';
+  const importing=api.importFile(file);importing.catch(()=>{});
+  await tick();assert.ok(probe,'empty MIME must reach media validation');
+  Object.defineProperties(probe,{videoWidth:{value:720},videoHeight:{value:1280},duration:{value:8}});
+  probe.dispatchEvent(new w.Event('loadedmetadata'));await tick();
+  assert.equal(writes.length,1);assert.equal(writes[0].row.blob.type,expected);
+  assert.equal(writes[0].row.blob.size,file.size);
+  rows.set(writes[0].row.id,writes[0].row);writes[0].transaction.oncomplete();
+  const record=await importing;assert.equal(record.mime,expected);assert.equal(record.name,filename);
+  await api.assertAvailable(record);
+});
+
+test('metadata-only validation still rejects missing video dimensions without saving', async t => {
+  const {w,d,api,writes,revoked}=setup(t);
+  const original=d.createElement.bind(d);let probe;
+  d.createElement=function(name,...args){const element=original(name,...args);if(name==='video')probe=element;return element;};
+  const importing=api.importFile(new w.File(['audio-only'],'empty.mp4',{type:'video/mp4'}));
+  const rejection=assert.rejects(importing,/길이|화면 크기/);
+  await tick();Object.defineProperties(probe,{videoWidth:{value:0},videoHeight:{value:0},duration:{value:8}});
+  probe.dispatchEvent(new w.Event('loadedmetadata'));await rejection;
+  assert.equal(writes.length,0);assert.equal(revoked.length,1);
 });
 
 test('codec errors clean the temporary URL and do not persist a broken file', async t => {

@@ -78,12 +78,12 @@
         <p class="posting-image-hint">사진을 끌어 넣거나 이동하세요. 모서리로 크기 조절 · 선택 후 Delete로 삭제 · Ctrl+Z로 복원 <span data-image-total></span></p>
         <section class="posting-inline-media-tools" data-inline-media-tools aria-label="본문 첨부사진과 대표이미지" hidden></section>
         <p class="posting-touch-hint">글을 길게 눌러 선택한 뒤, 양쪽 핸들로 범위를 조절하고 복사·붙여넣기하세요.</p>
-        <input type="file" accept="video/mp4,video/webm,.mp4,.webm" hidden data-video-input />
+        <input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" hidden data-video-input />
         <section class="posting-video-attachment" aria-label="첨부 사진과 영상" data-video-attachment hidden>
           <div data-video-preview></div>
           <p class="posting-video-hint">오른쪽 위 숫자로 순서를 선택하거나, 이동 손잡이를 좌우로 드래그하세요. 비율은 모든 첨부에 함께 적용됩니다.</p>
         </section>
-        <p class="posting-video-hint">사진 최대 3장 + 영상 1개 · MP4 / WebM · 영상 최대 100MB</p>
+        <p class="posting-video-hint">사진 최대 3장 + 영상 1개 · MP4 / WebM / MOV · 영상 최대 100MB</p>
       </section>
 
       <p class="posting-status" role="status" aria-live="polite" data-posting-status></p>
