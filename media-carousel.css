@@ -1,0 +1,62 @@
+.misamo-carousel { container-type:inline-size; position:relative; width:100%; max-width:100%; min-width:0; margin:20px 0; grid-column:1/-1; }
+.misamo-media-stage { position:relative; display:flex; align-items:flex-start; gap:10px; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; overscroll-behavior-x:contain; scrollbar-width:none; border-radius:12px; }
+.misamo-media-stage::-webkit-scrollbar { display:none; }
+.misamo-media-slide { position:relative; flex:0 0 min(82%,360px); min-width:0; overflow:hidden; border-radius:12px; background:#f6f1f4; scroll-snap-align:start; }
+.misamo-carousel[data-media-ratio="9:16"] .misamo-media-slide { flex-basis:min(76%,270px); }
+.misamo-carousel[data-media-count="1"] .misamo-media-slide { flex-basis:min(100%,440px); }
+.misamo-media-slide > img { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:cover; object-position:center; cursor:grab; }
+.misamo-media-stage.is-dragging { scroll-snap-type:none; user-select:none; }
+.misamo-media-stage.is-dragging img { cursor:grabbing; }
+.misamo-media-slide .misamo-video { position:absolute; inset:0; max-width:none; width:100%; height:100%; margin:0; }
+.misamo-media-slide .misamo-video-frame { width:100%; height:100%; border-radius:0; }
+.misamo-media-slide .misamo-video-status { position:absolute; inset:10px 10px auto; z-index:2; margin:0; }
+.misamo-media-controls { position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 8px; pointer-events:none; }
+.misamo-media-count { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.misamo-media-controls[hidden] { display:none; }
+.misamo-media-arrow { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; box-sizing:border-box; padding:0; border:1px solid #24273f12; border-radius:50%; background:#fffffff5; color:#34374d; box-shadow:0 2px 6px #19152814; cursor:pointer; pointer-events:auto; }
+.misamo-media-arrow svg { display:block; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+.misamo-media-arrow:hover { background:#fff; border-color:#24273f26; box-shadow:0 2px 8px #19152820; }
+.misamo-media-arrow:disabled { visibility:hidden; pointer-events:none; }
+@media (hover:hover) and (pointer:fine) {
+  .misamo-media-arrow { opacity:0; pointer-events:none; }
+  .post-card:hover .misamo-media-arrow:not(:disabled),
+  .misamo-carousel:hover .misamo-media-arrow:not(:disabled),
+  .misamo-carousel:has(:focus-visible) .misamo-media-arrow:not(:disabled) { opacity:1; pointer-events:auto; }
+}
+.misamo-carousel button:focus-visible, .misamo-media-stage:focus-visible { outline:3px solid #d32d67; outline-offset:2px; }
+.misamo-media-slide > img:focus-visible { outline:3px solid #d32d67; outline-offset:-3px; }
+.misamo-media-edit-controls { position:absolute; inset:10px 10px auto; z-index:3; display:flex; align-items:flex-start; justify-content:space-between; gap:8px; pointer-events:none; }
+.misamo-media-edit-actions, .misamo-media-edit-settings { display:flex; align-items:center; gap:6px; }
+.misamo-media-edit-controls button, .misamo-media-edit-controls select { display:block; flex-shrink:0; height:34px; min-width:34px; margin:0; padding:0; border:1px solid #ffffffb3; border-radius:999px; background:#fffffff2; color:#242536; box-shadow:0 2px 6px #0000001a; font-family:inherit; font-size:13px; font-weight:600; line-height:1; cursor:pointer; pointer-events:auto; }
+.misamo-media-edit-controls button { display:grid; place-items:center; width:34px; }
+.misamo-media-edit-controls svg { display:block; width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+.misamo-media-edit-controls .misamo-media-ratio-select { width:64px; padding:0 7px; }
+.misamo-media-edit-controls .misamo-media-position-select { appearance:none; -webkit-appearance:none; width:34px; text-align:center; text-align-last:center; padding:0; }
+.misamo-media-edit-controls button:hover, .misamo-media-edit-controls select:hover { background:#fff; border-color:#d32d6770; }
+.misamo-media-edit-controls :is(button,select):focus-visible { outline:3px solid #d32d67; outline-offset:2px; }
+.misamo-media-edit-controls :disabled { opacity:.55; cursor:default; }
+.misamo-carousel.is-editing .misamo-media-slide[draggable="true"] { cursor:grab; }
+.misamo-carousel.is-editing .misamo-media-slide.is-reorder-source { opacity:.45; }
+.misamo-carousel.is-editing .misamo-media-slide.is-reorder-target::after { content:""; position:absolute; inset:0; border:3px solid #d32d67; border-radius:inherit; pointer-events:none; z-index:4; }
+@media(max-width:600px) { .misamo-carousel { margin:16px 0; } .misamo-media-stage { gap:8px; } .misamo-media-slide { flex-basis:86%; } }
+.posting-media-order { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.posting-media-order > div { display:flex; align-items:center; gap:6px; padding:8px; border:1px solid #f0dce5; border-radius:9px; font-size:12px; background:white; }
+.posting-media-order button { border:0; border-radius:5px; padding:6px 8px; background:#fff0f5; color:#b92b59; cursor:pointer; }
+.posting-media-order button:disabled { opacity:.35; cursor:default; }
+.posting-preview-images:has(.misamo-carousel) { display:block; }
+.post-card:has(.misamo-carousel) .post-body { display:block; }
+
+
+.posting-editor.has-mixed-media img[data-image-id] { display:none; }
+
+@container (min-width:730px) {
+  .misamo-carousel[data-media-count="2"] .misamo-media-controls { display:none; }
+}
+@container (min-width:550px) {
+  .misamo-carousel[data-media-count="2"][data-media-ratio="9:16"] .misamo-media-controls { display:none; }
+}
+@container (min-width:830px) {
+  .misamo-carousel[data-media-count="3"][data-media-ratio="9:16"] .misamo-media-controls { display:none; }
+}
+
+.misamo-media-fit-label { display:flex; align-items:center; height:34px; padding:0 10px; border-radius:999px; background:#fffffff2; color:#52515e; font-size:12px; white-space:nowrap; box-sizing:border-box; }

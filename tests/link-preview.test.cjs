@@ -4,6 +4,23 @@ const { JSDOM } = require('jsdom');
 const { createMisamoContent } = require('../post-content.js');
 const { publicIPv4, validateUrl, metadata, getPreview } = require('../lib/link-preview.cjs');
 
+test('manual link addresses get HTTPS without accepting active schemes or credentials',()=>{
+  const content=createMisamoContent(new JSDOM('').window.document);
+  assert.equal(content.normalizeLinkAddress(' naver.com '),'https://naver.com/');
+  assert.equal(content.normalizeLinkAddress('www.naver.com/path?q=1'),'https://www.naver.com/path?q=1');
+  assert.equal(content.normalizeLinkAddress('http://naver.com'),'https://naver.com/');
+  for(const value of ['javascript:alert(1)','data:text/html,test','hello world','user:pass@example.com','example','https://user@example.com']) assert.equal(content.normalizeLinkAddress(value),'');
+});
+
+test('legacy card widths are discarded so cards use automatic sizing',()=>{
+  const content=createMisamoContent(new JSDOM('').window.document);
+  const html='<a href="https://example.com" data-link-card="1" data-image-width="30" data-align="right">Example</a>';
+  assert.ok(!content.sanitizeHtml(html).includes('data-image-width'));
+  const holder=new JSDOM(content.renderHtml(html,[])).window.document;
+  assert.equal(holder.querySelector('a').style.width,'');
+  assert.equal(holder.querySelector('a').style.marginLeft,'auto');
+});
+
 test('preview rejects private, reserved and disguised addresses', () => {
   for (const ip of ['127.0.0.1','10.1.2.3','169.254.169.254','172.16.1.1','192.168.1.1','100.64.1.1','0.0.0.0','224.0.0.1','192.0.2.1','198.18.0.1']) assert.equal(publicIPv4(ip), false, ip);
   assert.equal(publicIPv4('8.8.8.8'), true);

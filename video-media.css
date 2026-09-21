@@ -1,0 +1,79 @@
+.misamo-video {
+  width: 100%;
+  max-width: 400px;
+  min-width: 0;
+  margin: 22px auto;
+  grid-column: 1 / -1;
+}
+.misamo-video[data-video-ratio="1:1"] { max-width: 480px; }
+.misamo-video[data-video-ratio="9:16"] { max-width: 360px; }
+.misamo-video[data-video-ratio="16:9"] { max-width: 600px; }
+.misamo-video-frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #15171c;
+  border-radius: 12px;
+  isolation: isolate;
+}
+.misamo-video-frame > video {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  object-fit: cover;
+  object-position: center;
+  background: #15171c;
+}
+.misamo-video-frame > video:focus-visible { outline: 3px solid #ec668f; outline-offset: -3px; }
+/* Fullscreen shows the source frame, not the feed card's cropped preview.
+   Important overrides the inline cover style used by existing video figures. */
+.misamo-video video:fullscreen {
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #000;
+}
+.misamo-video video:-webkit-full-screen {
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #000;
+}
+.misamo-video > figcaption {
+  display: none;
+  margin: 8px 0 0;
+  color: var(--muted, #72758a);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.misamo-video-status {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #eddce2;
+  border-radius: 10px;
+  color: #714457;
+  background: #fff8fa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.misamo-video-status[hidden], .misamo-video-status button[hidden] { display: none; }
+.misamo-video-status p { margin: 0; font: inherit; white-space: normal; }
+.misamo-video-status button {
+  margin-top: 8px;
+  padding: 7px 12px;
+  border: 1px solid #e4b9c8;
+  border-radius: 7px;
+  color: inherit;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.misamo-video-status button:focus-visible { outline: 3px solid #d480a1; outline-offset: 2px; }
+@media (max-width: 600px) {
+  .misamo-video { margin: 18px auto; }
+  .misamo-video-frame { border-radius: 9px; }
+}

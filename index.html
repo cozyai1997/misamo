@@ -14,9 +14,16 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./comments.css?v=20260910-prototype" />
-    <link rel="stylesheet" href="./posting.css?v=20260910-editor11" />
+    <link rel="stylesheet" href="./styles.css?v=20260922-mobile-five" />
+    <link rel="stylesheet" href="./comments.css?v=20260921-collapsed1" />
+    <link rel="stylesheet" href="./posting.css?v=20260922-sticky-toolbar" />
+    <link rel="stylesheet" href="./reading.css?v=20260922-image-ratio" />
+    <link rel="stylesheet" href="./community-shell.css?v=20260914-sns2" />
+    <link rel="stylesheet" href="./community-posts.css?v=20260921-share-icon1" />
+    <link rel="stylesheet" href="./ui-polish.css?v=20260922-sidebar" />
+    <link rel="stylesheet" href="./video-media.css?v=20260921-fullscreen1" />
+    <link rel="stylesheet" href="./posting-video.css?v=20260922-remove-icon" />
+    <link rel="stylesheet" href="./media-carousel.css?v=20260922-media-ui3" />
   </head>
   <body>
     <div class="app-shell">
@@ -70,7 +77,7 @@
               <i data-lucide="compass"></i>
               <span>탐색</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="#saved" data-view-link data-view-target="saved">
               <i data-lucide="bookmark"></i>
               <span>저장</span>
             </a>
@@ -314,13 +321,13 @@
                     <span>15</span>
                   </button>
                 </div>
-                <button type="button" class="action-button" aria-label="저장">
+                <button type="button" class="action-button" data-bookmark-button aria-pressed="false" aria-label="저장">
                   <i data-lucide="bookmark"></i>
                 </button>
               </footer>
             </article>
 
-            <article class="post-card compact">
+            <article class="post-card compact" data-post-id="demo-support" data-author-id="growth-ceo">
               <header class="post-head">
                 <div>
                   <img
@@ -350,8 +357,25 @@
                   alt="문서와 노트북이 놓인 책상"
                 />
               </div>
+            <footer class="post-actions"><div><button type="button" class="action-button" data-like-button aria-label="좋아요" aria-pressed="false"><i data-lucide="heart"></i><span data-like-count>0</span></button><button type="button" class="action-button" data-comments-open aria-label="댓글 보기"><i data-lucide="message-circle"></i><span data-comments-count>0</span></button></div><button type="button" class="action-button" data-bookmark-button aria-label="저장" aria-pressed="false"><i data-lucide="bookmark"></i></button></footer>
             </article>
           </section>
+          </div>
+          <div class="page-view saved-view" data-page="saved" aria-label="저장한 글">
+            <header class="saved-heading">
+              <i data-lucide="bookmark"></i>
+              <div><h1>저장한 콘텐츠</h1><p>다시 보고 싶은 창업 정보와 글을 모아보세요.</p></div>
+            </header>
+            <div class="saved-filters" data-saved-filters aria-label="저장 콘텐츠 분류"></div>
+            <div class="saved-toolbar">
+              <select data-saved-sort aria-label="저장 콘텐츠 정렬"><option value="latest">최근 저장순</option><option value="oldest">오래된 저장순</option><option value="title">제목순</option></select>
+              <span data-saved-context></span>
+              <div class="saved-view-switch" aria-label="보기 방식">
+                <button type="button" data-saved-view="list" aria-label="목록 보기" aria-pressed="false"><i data-lucide="list"></i></button>
+                <button type="button" data-saved-view="grid" aria-label="카드 보기" aria-pressed="true"><i data-lucide="layout-grid"></i></button>
+              </div>
+            </div>
+            <div class="saved-content-grid" data-bookmark-list data-layout="grid" aria-live="polite"></div>
           </div>
           <div class="page-view explore-view" data-page="explore" aria-label="탐색 화면">
             <section class="explore-hero">
@@ -405,7 +429,7 @@
                 <p>misamo_korea님을 위한 추천 콘텐츠예요.</p>
               </header>
               <div class="recommend-grid">
-                <article class="recommend-card">
+                <article class="recommend-card" data-post-id="recommend-checklist">
                   <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=520&q=80" alt="카페 내부" />
                   <span>창업 정보</span>
                   <h3>카페 창업 준비 체크리스트 10단계</h3>
@@ -418,10 +442,10 @@
                     <span><i data-lucide="heart"></i>124</span>
                     <span><i data-lucide="eye"></i>2.1k</span>
                     <span aria-hidden="true"></span>
-                    <button type="button" aria-label="카페 창업 준비 체크리스트 저장"><i data-lucide="bookmark"></i></button>
+                    <button type="button" data-bookmark-button aria-pressed="false" aria-label="카페 창업 준비 체크리스트 저장"><i data-lucide="bookmark"></i></button>
                   </footer>
                 </article>
-                <article class="recommend-card">
+                <article class="recommend-card" data-post-id="recommend-cost">
                   <img src="assets/explore-cost-template.png" alt="카페 창업 비용 분석 템플릿" />
                   <span>지원서</span>
                   <h3>카페 창업 비용 분석 엑셀 템플릿</h3>
@@ -434,10 +458,10 @@
                     <span><i data-lucide="heart"></i>98</span>
                     <span><i data-lucide="eye"></i>1.6k</span>
                     <span aria-hidden="true"></span>
-                    <button type="button" aria-label="카페 창업 비용 분석 저장"><i data-lucide="bookmark"></i></button>
+                    <button type="button" data-bookmark-button aria-pressed="false" aria-label="카페 창업 비용 분석 저장"><i data-lucide="bookmark"></i></button>
                   </footer>
                 </article>
-                <article class="recommend-card">
+                <article class="recommend-card" data-post-id="recommend-market">
                   <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=520&q=80" alt="계약서 작성" />
                   <span>전문가 칼럼</span>
                   <h3>상권 분석, 이렇게 하면 실패하지 않아요</h3>
@@ -450,10 +474,10 @@
                     <span><i data-lucide="heart"></i>156</span>
                     <span><i data-lucide="eye"></i>3.4k</span>
                     <span aria-hidden="true"></span>
-                    <button type="button" aria-label="상권 분석 칼럼 저장"><i data-lucide="bookmark"></i></button>
+                    <button type="button" data-bookmark-button aria-pressed="false" aria-label="상권 분석 칼럼 저장"><i data-lucide="bookmark"></i></button>
                   </footer>
                 </article>
-                <article class="recommend-card">
+                <article class="recommend-card" data-post-id="recommend-marketing">
                   <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=520&q=80" alt="마케팅 화면" />
                   <span>창업 정보</span>
                   <h3>카페 마케팅 아이디어 25가지</h3>
@@ -466,7 +490,7 @@
                     <span><i data-lucide="heart"></i>87</span>
                     <span><i data-lucide="eye"></i>1.3k</span>
                     <span aria-hidden="true"></span>
-                    <button type="button" aria-label="카페 마케팅 아이디어 저장"><i data-lucide="bookmark"></i></button>
+                    <button type="button" data-bookmark-button aria-pressed="false" aria-label="카페 마케팅 아이디어 저장"><i data-lucide="bookmark"></i></button>
                   </footer>
                 </article>
               </div>
@@ -488,6 +512,12 @@
         </main>
 
         <aside class="right-rail" aria-label="보조 정보">
+          <div class="rail-view saved-rail" data-rail="saved">
+            <section class="saved-side-card"><header><h2>저장 폴더</h2></header><div data-saved-folders></div><button type="button" class="saved-folder-create" data-folder-create><i data-lucide="plus"></i>새 폴더 만들기</button></section>
+            <section class="saved-side-card"><header><h2>최근 저장한 태그</h2></header><div class="saved-tag-cloud" data-saved-tags></div></section>
+            <section class="saved-side-card"><header><h2>이런 콘텐츠도 살펴보세요</h2></header><div class="saved-suggestions" data-saved-suggestions></div></section>
+            <section class="saved-promo"><i data-lucide="bookmark-check"></i><h2>좋은 아이디어를<br>나만의 폴더에 차곡차곡</h2><p>저장한 콘텐츠로 창업 준비를 이어가세요.</p><button type="button" data-view-link data-view-target="explore">더 많은 콘텐츠 둘러보기 <i data-lucide="arrow-right"></i></button></section>
+          </div>
           <div class="rail-view home-rail is-active" data-rail="home">
           <section class="profile-card">
             <div class="profile-row">
@@ -653,18 +683,39 @@
 
     <nav class="mobile-nav" aria-label="모바일 메뉴">
       <a class="active" href="#home" data-view-link data-view-target="home"><i data-lucide="home"></i><span>홈</span></a>
-      <a href="#write" data-view-link data-view-target="write"><i data-lucide="square-plus"></i><span>글쓰기</span></a>
       <a href="#explore" data-view-link data-view-target="explore"><i data-lucide="compass"></i><span>탐색</span></a>
-      <a href="#"><i data-lucide="bell"></i><span>알림</span></a>
-      <a href="#"><i data-lucide="user"></i><span>프로필</span></a>
+      <a href="#write" data-view-link data-view-target="write"><i data-lucide="square-plus"></i><span>글쓰기</span></a>
+      <a href="#messages" data-view-link data-view-target="messages"><i data-lucide="send"></i><span>메시지</span></a>
+      <a href="#profile" data-view-link data-view-target="profile"><i data-lucide="user"></i><span>프로필</span></a>
     </nav>
 
-    <script src="./post-store.js?v=20260910-prototype"></script>
-    <script src="./post-content.js?v=20260910-editor11"></script>
-    <script src="./editor-media.js?v=20260910-editor11"></script>
-    <script src="./posting.js?v=20260910-editor11"></script>
-    <script src="./script.js?v=20260910-prototype"></script>
-    <script src="./comments.js?v=20260910-inline1"></script>
+    <script src="./video-media.js?v=20260921-ratio43"></script>
+    <script src="./media-carousel.js?v=20260922-cover-left"></script>
+    <script src="./post-store.js?v=20260922-body-tags"></script>
+    <script src="./local-test-posts.js?v=20260914-shared"></script>
+    <script src="./local-test-video.js?v=20260921-ratio43"></script>
+    <script src="./local-test-mixed.js?v=20260921-ratio43"></script>
+    <script src="./post-content.js?v=20260922-image-ratio"></script>
+    <script src="./editor-media.js?v=20260922-media-ui3"></script>
+    <script src="./posting.js?v=20260922-body-tags"></script>
+    <script src="./community-data.js?v=20260922-body-tags"></script>
+    <script src="./community-shell.js?v=20260922-mobile-swipe"></script>
+    <script src="./script.js?v=20260922-mobile-swipe"></script>
+    <dialog class="saved-folder-dialog" data-folder-dialog aria-labelledby="saved-folder-title">
+      <form data-folder-form>
+        <h2 id="saved-folder-title">새 폴더 만들기</h2>
+        <p>창업 아이디어를 주제별로 모아보세요.</p>
+        <label for="saved-folder-name">폴더 이름</label>
+        <input id="saved-folder-name" data-folder-name maxlength="30" required placeholder="예: 카페 창업" autocomplete="off" />
+        <p class="saved-folder-error" data-folder-error role="alert"></p>
+        <div><button type="button" data-folder-cancel>취소</button><button type="submit">만들기</button></div>
+      </form>
+    </dialog>
+
+    <script src="./comments.js?v=20260921-collapsed1"></script>
+    <script src="./reading.js?v=20260922-inline-feed"></script>
+    <script src="./bookmarks.js?v=20260914-sns2"></script>
+    <script src="./community-posts.js?v=20260921-share-icon1"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" onload="window.createMisamoIcons && window.createMisamoIcons()"></script>
   </body>
 </html>

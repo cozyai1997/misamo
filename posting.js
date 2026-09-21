@@ -44,6 +44,10 @@
 
       <section class="posting-block posting-editor-block" aria-labelledby="posting-content-title">
         <h2 id="posting-content-title">내용</h2>
+        <fieldset class="posting-layout-options"><legend>게시글 형식</legend>
+          <label><input type="radio" name="post-layout" value="carousel" checked /><span><strong>아래에 모아보기</strong><small>글 아래에서 사진·영상을 좌우로 넘겨봐요</small></span></label>
+          <label><input type="radio" name="post-layout" value="inline" /><span><strong>본문에 넣기</strong><small>글 사이에 사진·영상을 배치하고 대표사진을 골라요</small></span></label>
+        </fieldset>
         <label class="posting-title-field">
           <span class="sr-only">제목</span>
           <input type="text" maxlength="100" placeholder="제목을 입력해주세요" data-post-title />
@@ -57,7 +61,8 @@
           <button type="button" data-editor-command="insertUnorderedList" aria-label="글머리 기호"><i data-lucide="list"></i></button>
           <button type="button" data-editor-command="insertOrderedList" aria-label="번호 매기기"><i data-lucide="list-ordered"></i></button>
           <button type="button" data-editor-link aria-label="HTTPS 링크 추가"><i data-lucide="link"></i></button>
-          <button type="button" class="posting-insert-image" data-editor-image aria-label="이미지 넣기"><i data-lucide="image-plus"></i><span>이미지 넣기</span></button>
+          <button type="button" class="posting-insert-image" data-editor-image aria-label="이미지 넣기" title="이미지 넣기"><i data-lucide="image-plus"></i></button>
+          <button type="button" class="posting-insert-image" data-editor-video aria-label="영상 넣기" title="영상 넣기"><i data-lucide="video"></i></button>
           <span aria-hidden="true"></span>
           <button type="button" data-editor-align="left" aria-label="왼쪽 정렬"><i data-lucide="align-left"></i></button>
           <button type="button" data-editor-align="center" aria-label="가운데 정렬"><i data-lucide="align-center"></i></button>
@@ -71,7 +76,14 @@
         </div>
         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden data-image-input />
         <p class="posting-image-hint">사진을 끌어 넣거나 이동하세요. 모서리로 크기 조절 · 선택 후 Delete로 삭제 · Ctrl+Z로 복원 <span data-image-total></span></p>
+        <section class="posting-inline-media-tools" data-inline-media-tools aria-label="본문 첨부사진과 대표이미지" hidden></section>
         <p class="posting-touch-hint">글을 길게 눌러 선택한 뒤, 양쪽 핸들로 범위를 조절하고 복사·붙여넣기하세요.</p>
+        <input type="file" accept="video/mp4,video/webm,.mp4,.webm" hidden data-video-input />
+        <section class="posting-video-attachment" aria-label="첨부 사진과 영상" data-video-attachment hidden>
+          <div data-video-preview></div>
+          <p class="posting-video-hint">오른쪽 위 숫자로 순서를 선택하거나, 이동 손잡이를 좌우로 드래그하세요. 비율은 모든 첨부에 함께 적용됩니다.</p>
+        </section>
+        <p class="posting-video-hint">사진 최대 3장 + 영상 1개 · MP4 / WebM · 영상 최대 100MB</p>
       </section>
 
       <p class="posting-status" role="status" aria-live="polite" data-posting-status></p>
@@ -114,6 +126,19 @@
   const titleInput = page.querySelector("[data-post-title]");
   const titleCount = page.querySelector("[data-title-count]");
   const editor = page.querySelector("[data-post-editor]");
+  const toolbar = page.querySelector('.posting-toolbar');
+  const siteHeader = document.querySelector('.topbar');
+  function updateToolbarOffset() {
+    page.style.setProperty('--posting-toolbar-top', `${Math.ceil(siteHeader?.getBoundingClientRect().height || 0)}px`);
+    page.style.setProperty('--posting-toolbar-height', `${Math.ceil(toolbar.getBoundingClientRect().height)}px`);
+  }
+  if (window.ResizeObserver) {
+    const toolbarObserver = new ResizeObserver(updateToolbarOffset);
+    if (siteHeader) toolbarObserver.observe(siteHeader);
+    toolbarObserver.observe(toolbar);
+  }
+  window.addEventListener('resize', updateToolbarOffset);
+  updateToolbarOffset();
   const status = page.querySelector("[data-posting-status]");
   const draftTime = page.querySelector("[data-draft-time]");
   const categorySelect = rail.querySelector("[data-post-category]");
@@ -123,9 +148,17 @@
   const tagCount = rail.querySelector("[data-tag-count]");
   const imageInput = page.querySelector("[data-image-input]");
   const inlineImageButton = page.querySelector("[data-editor-image]");
+  const videoMedia = window.MisamoVideo;
+  const videoInput = page.querySelector('[data-video-input]');
+  const videoAttachment = page.querySelector('[data-video-attachment]');
+  let attachedVideo = null, videoBusy = false, videoGeneration = 0;
+  let mediaOrder = [], mediaRatio = "4:3", mediaLayout = "carousel", selectedMediaKey = "";
+  const carousel = window.MisamoCarousel;
   const imageTotal = page.querySelector("[data-image-total]");
   const publishButton = page.querySelector("[data-publish-post]");
+  let editingPostId = "", composerBackup = null;
   let tags = [];
+  let autoTags = new Set(), excludedAutoTags = new Set();
   let images = [];
   let coverId = "";
   let selectedType = "";
@@ -142,6 +175,7 @@
     onChange: () => { rememberEditorRange(); renderImages(); recordEdit(); scheduleAutosave(); },
     onFiles: (files, range) => handleImageFiles(files, range),
     onDelete: (id) => {
+      if(id.startsWith('video:')) { removeAttachment(id); return; }
       if(id.startsWith('card:')) {
         editor.querySelectorAll('a[data-card-id]').forEach(node=>{if(`card:${node.dataset.cardId}`===id) node.remove();});
         renderImages();recordEdit();scheduleAutosave();return;
@@ -168,11 +202,11 @@
   }
   function editorSnapshot() {
     const draft=captureDraft();
-    return {html:draft.bodyHtml,images:draft.images,coverId:draft.coverId,selection:selectionBookmark(),selectedId:mediaEditor.selectedId()};
+    return {html:draft.bodyHtml,images:draft.images,coverId:draft.coverId,video:draft.video,mediaLayout:draft.mediaLayout,mediaOrder:draft.mediaOrder,mediaRatio:draft.mediaRatio,selection:selectionBookmark(),selectedId:mediaEditor.selectedId()};
   }
   function updateHistoryButtons() {
-    page.querySelector('[data-editor-command="undo"]').disabled=imageBusy || historyIndex<=0;
-    page.querySelector('[data-editor-command="redo"]').disabled=imageBusy || historyIndex>=editHistory.length-1;
+    page.querySelector('[data-editor-command="undo"]').disabled=imageBusy || videoBusy || historyIndex<=0;
+    page.querySelector('[data-editor-command="redo"]').disabled=imageBusy || videoBusy || historyIndex>=editHistory.length-1;
   }
   function resetEditHistory() {
     editHistory=[editorSnapshot()];historyIndex=0;lastEditKind='';updateHistoryButtons();
@@ -180,7 +214,7 @@
   function recordEdit(kind='action') {
     if(restoringHistory || composing || historyIndex<0) return;
     const next=editorSnapshot(),current=editHistory[historyIndex],now=Date.now();
-    if(current.html===next.html) {
+    if(JSON.stringify([current.html,current.images,current.coverId,current.video,current.mediaLayout,current.mediaOrder,current.mediaRatio])===JSON.stringify([next.html,next.images,next.coverId,next.video,next.mediaLayout,next.mediaOrder,next.mediaRatio])) {
       current.selection=next.selection || current.selection;current.selectedId=next.selectedId;
       if(kind!=='typing') lastEditKind='';
       return;
@@ -205,17 +239,18 @@
     const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);savedEditorRange=range.cloneRange();
   }
   function travelHistory(direction) {
-    if(imageBusy || composing || mediaEditor.isInteracting()) return;
+    if(imageBusy || videoBusy || composing || mediaEditor.isInteracting()) return;
     recordEdit('boundary');
     const nextIndex=historyIndex+direction;
     if(nextIndex<0 || nextIndex>=editHistory.length) return;
     restoringHistory=true;
     try {
       historyIndex=nextIndex;const state=editHistory[historyIndex];
-      images=state.images.slice();coverId=state.coverId;
+      images=state.images.slice();coverId=state.coverId;attachedVideo=state.video;mediaLayout=state.mediaLayout;mediaOrder=state.mediaOrder.slice();mediaRatio=state.mediaRatio;
+      videoMedia?.release(editor);
       mediaEditor.clearSelection();editor.innerHTML=postContent.renderHtml(state.html,images);
       editor.focus({preventScroll:true});restoreBookmark(state.selection);renderImages();
-      const selected=Array.from(editor.querySelectorAll('img[data-image-id],a[data-card-id]')).find(img=>(img.dataset.cardId?`card:${img.dataset.cardId}`:img.dataset.imageId)===state.selectedId);
+      const selected=Array.from(editor.querySelectorAll('img[data-image-id],a[data-card-id],div[data-video-id]')).find(img=>(img.dataset.videoId?`video:${img.dataset.videoId}`:img.dataset.cardId?`card:${img.dataset.cardId}`:img.dataset.imageId)===state.selectedId);
       if(selected) mediaEditor.select(selected);
       lastEditKind='';updateHistoryButtons();scheduleAutosave();
     } finally {restoringHistory=false;}
@@ -254,8 +289,9 @@
 
   function captureDraft() {
     const bodyHtml = sanitizeHtml(editor.innerHTML);
+    syncBodyTags(bodyHtml);
     const usedIds = new Set(postContent.inlineImageIds(bodyHtml));
-    const usedImages = images.filter(image => usedIds.has(image.id));
+    const usedImages = carousel?.enabled({images,video:attachedVideo,mediaLayout}) ? images : images.filter(image => usedIds.has(image.id));
     return {
       title: titleInput.value.trim(),
       bodyHtml,
@@ -264,19 +300,27 @@
       category: categorySelect.value,
       industry: industrySelect.value,
       tags: tags.slice(0, 10),
+      autoTags: [...autoTags], excludedAutoTags: [...excludedAutoTags],
       images: usedImages.map((image) => ({ id: image.id, src: image.src, alt: image.alt })),
-      coverId: usedImages.some((image) => image.id === coverId) ? coverId : (usedImages[0]?.id || ""),
+      video: attachedVideo ? { ...attachedVideo, ratio:mediaLayout === "inline" ? attachedVideo.ratio : mediaRatio } : null,
+      mediaOrder: carousel ? carousel.items({images:usedImages,video:attachedVideo,mediaOrder}).map(i => i.key) : [],
+      mediaRatio, mediaLayout,
+      coverId: (attachedVideo && coverId === `video:${attachedVideo.id}`) || usedImages.some((image) => image.id === coverId) ? coverId : (usedImages[0]?.id || (attachedVideo ? `video:${attachedVideo.id}` : "")),
     };
   }
 
   function hasDraftContent(draft) {
-    return Boolean(draft.title || draft.bodyText || draft.type || draft.category || draft.industry || draft.tags.length || draft.images.length);
+    return Boolean(draft.title || draft.bodyText || draft.type || draft.category || draft.industry || draft.tags.length || draft.images.length || draft.video);
   }
 
   function saveDraft(options) {
     const manual = Boolean(options?.manual);
     window.clearTimeout(autosaveTimer);
     autosaveTimer = 0;
+    if (editingPostId) {
+      if (manual) setStatus("수정 중입니다. 수정 저장을 눌러 반영해주세요. 기존 초안은 보존됩니다.", "success");
+      return null;
+    }
     if (!store?.saveDraft) {
       if (manual) setStatus("임시저장 기능을 불러오지 못했습니다.", "error", true);
       return null;
@@ -324,6 +368,27 @@
     });
   }
 
+  function syncBodyTags(html) {
+    if (composing) return;
+    const holder = document.createElement('div'); holder.innerHTML = html;
+    holder.querySelectorAll('[data-link-card], [data-video-id], img').forEach(node => node.remove());
+    holder.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
+    holder.querySelectorAll('p,div,li,h2,h3').forEach(node => node.append('\n'));
+    const found = new Set();
+    for (const match of (holder.textContent || '').matchAll(/(?:^|[^\p{L}\p{M}\p{N}_/#])#([\p{L}\p{M}\p{N}_]+)/gu)) {
+      const tag = match[1].normalize('NFC');
+      if (tag.length <= 30) found.add(tag);
+    }
+    const previous = tags.join('\0');
+    tags = tags.filter(tag => !autoTags.has(tag) || found.has(tag));
+    autoTags = new Set([...autoTags].filter(tag => tags.includes(tag)));
+    for (const tag of found) {
+      if (tags.length >= 10) break;
+      if (!tags.includes(tag) && !excludedAutoTags.has(tag)) { tags.push(tag); autoTags.add(tag); }
+    }
+    if (previous !== tags.join('\0')) renderTags();
+  }
+
   function renderTags() {
     tagList.replaceChildren();
     tags.forEach((tag) => {
@@ -334,6 +399,7 @@
       remove.setAttribute("aria-label", `${tag} 태그 삭제`);
       remove.textContent = "×";
       remove.addEventListener("click", () => {
+        excludedAutoTags.add(tag); autoTags.delete(tag);
         tags = tags.filter((item) => item !== tag);
         renderTags();
         scheduleAutosave();
@@ -351,6 +417,7 @@
       setStatus("태그는 최대 10개까지 추가할 수 있습니다.", "error");
       return;
     }
+    excludedAutoTags.delete(tag); autoTags.delete(tag);
     if (!tags.includes(tag)) tags.push(tag);
     tagInput.value = "";
     renderTags();
@@ -359,10 +426,138 @@
 
   function renderImages() {
     const ids = new Set(postContent.inlineImageIds(editor.innerHTML));
-    const current = images.filter(image => ids.has(image.id));
+    const current = carousel?.enabled({images,video:attachedVideo,mediaLayout}) ? images : images.filter(image => ids.has(image.id));
     const bytes = current.reduce((total, image) => total + estimateDataUrlBytes(image.src), 0);
     imageTotal.textContent = `사진 ${current.length}/3 · ${Math.round(bytes / 1024)}KB / 약 1MB`;
     mediaEditor.refresh();
+    if (!mediaLayout && attachedVideo && current.length) mediaLayout = "carousel";
+    renderVideoAttachment();
+  }
+
+  function mountArticleVideo(container, video, ratio) {
+    if (!postContent.mountInlineVideo || !video) return;
+    if (![...container.querySelectorAll('div[data-video-id]')].some(node => node.dataset.videoId === video.id)) {
+      const marker = document.createElement('div'); marker.dataset.videoId = video.id; container.append(marker);
+    }
+    postContent.mountInlineVideo(container, video, {ratio});
+  }
+
+  function insertVideoAtCaret(insertionRange = imageInsertionRange()) {
+    if (!attachedVideo) return;
+    let range = editor.contains(insertionRange.startContainer) ? insertionRange.cloneRange() : imageInsertionRange();
+    const inside = (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement)?.closest('[data-video-id]');
+    if (inside) { range.setStartAfter(inside); range.collapse(true); }
+    editor.querySelectorAll('div[data-video-id]').forEach(node => { videoMedia?.release(node); node.remove(); });
+    const marker = document.createElement('div'); marker.dataset.videoId = attachedVideo.id;
+    range.collapse(false);
+    let block = (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement)?.closest('p,h2,h3');
+    const after = document.createElement('p');
+    if (block && editor.contains(block)) {
+      const tail = range.cloneRange(); tail.setEnd(block, block.childNodes.length);
+      after.append(tail.extractContents()); block.after(marker, after);
+    } else { range.insertNode(marker); marker.after(after); }
+    if (!after.childNodes.length) after.append(document.createElement('br'));
+    mountArticleVideo(editor, attachedVideo, attachedVideo.ratio);
+    range.setStart(after, 0); range.collapse(true);
+    editor.focus({preventScroll:true});
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    savedEditorRange = range.cloneRange();
+    marker.scrollIntoView?.({block:'nearest'});
+  }
+
+  function syncInlineVideo() {
+    const markers = [...editor.querySelectorAll('div[data-video-id]')];
+    if (mediaLayout !== 'inline') {
+      markers.forEach(marker => { videoMedia?.release(marker); marker.replaceChildren(); });
+      return;
+    }
+    if (!attachedVideo) { markers.forEach(marker => {videoMedia?.release(marker); marker.remove();}); return; }
+    const marker = markers.find(node => node.dataset.videoId === attachedVideo.id);
+    if (!marker) { attachedVideo = null; return; }
+    if (marker?.querySelector(`.misamo-video[data-video-ratio="${attachedVideo.ratio}"]`)) return;
+    mountArticleVideo(editor, attachedVideo, attachedVideo.ratio);
+  }
+
+  function selectInlineCover(id) {
+    if (imageBusy || videoBusy) return;
+    recordEdit('boundary'); coverId = id;
+    if (attachedVideo && id === `video:${attachedVideo.id}`) mediaRatio = attachedVideo.ratio;
+    else {
+      const image = [...editor.querySelectorAll('img[data-image-id]')].find(node => node.dataset.imageId === id);
+      if (image?.dataset.imageRatio) mediaRatio = image.dataset.imageRatio;
+      else if (image?.naturalWidth && image.naturalHeight) {
+        const value = image.naturalWidth / image.naturalHeight;
+        mediaRatio = ['4:3','1:1','9:16','16:9'].reduce((best, ratio) => Math.abs(Math.log(value / ratio.split(':').reduce((a,b)=>a/b))) < Math.abs(Math.log(value / best.split(':').reduce((a,b)=>a/b))) ? ratio : best);
+      }
+    }
+    renderVideoAttachment(); recordEdit(); scheduleAutosave();
+  }
+  function positionImageCoverControls() {
+    const surface = editor.parentElement, base = surface.getBoundingClientRect();
+    surface.querySelectorAll('[data-image-cover-overlay]').forEach(control => {
+      const img = [...editor.querySelectorAll('img[data-image-id]')].find(node => node.dataset.imageId === control.dataset.imageCoverOverlay);
+      if (!img) { control.remove(); return; }
+      const rect = img.getBoundingClientRect();
+      control.hidden = mediaLayout !== 'inline' || !rect.width || !rect.height;
+      control.style.left = `${control.dataset.imageRatioOverlay !== undefined ? rect.right-base.left-control.offsetWidth-8 : rect.left-base.left+8}px`;
+      control.style.top = `${rect.top-base.top+8}px`;
+    });
+  }
+  function renderImageCoverControls(draft) {
+    const surface = editor.parentElement;
+    surface.querySelectorAll('[data-image-cover-overlay]').forEach(control => control.remove());
+    if (mediaLayout !== 'inline') return;
+    editor.querySelectorAll('img[data-image-id]').forEach(img => {
+      const control = document.createElement('div'); control.dataset.imageCoverOverlay = img.dataset.imageId; control.className='posting-image-cover-controls';
+      const button = document.createElement('button'); button.type='button'; button.textContent='대표'; button.dataset.inlineCover=img.dataset.imageId; button.dataset.coverSelect=img.dataset.imageId;
+      button.setAttribute('aria-label','이 사진을 대표로 지정'); button.setAttribute('aria-pressed',String(draft.coverId === img.dataset.imageId)); button.disabled=imageBusy || videoBusy;
+      button.addEventListener('mousedown',event=>event.preventDefault()); button.addEventListener('click',()=>selectInlineCover(img.dataset.imageId)); control.append(button);
+      surface.append(control);
+      const ratioControl = document.createElement('div'); ratioControl.dataset.imageCoverOverlay=img.dataset.imageId; ratioControl.dataset.imageRatioOverlay=''; ratioControl.className='posting-image-ratio-controls';
+      const ratio = document.createElement('select'); ratio.dataset.inlineImageRatio=img.dataset.imageId; ratio.setAttribute('aria-label','사진 화면 비율'); ratio.disabled=imageBusy || videoBusy;
+      ['','4:3','1:1','9:16','16:9'].forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value || '원본';ratio.append(option);});
+      ratio.value=img.dataset.imageRatio || '';
+      ratio.addEventListener('change',()=>{
+        if(imageBusy || videoBusy) return;
+        recordEdit('boundary');
+        if(ratio.value) img.dataset.imageRatio=ratio.value; else delete img.dataset.imageRatio;
+        const html=postContent.renderHtml(img.outerHTML,images); const template=document.createElement('template');template.innerHTML=html; img.replaceWith(template.content);
+        if(captureDraft().coverId === img.dataset.imageId) {
+          if(ratio.value) mediaRatio=ratio.value;
+          else { selectInlineCover(img.dataset.imageId); return; }
+        }
+        renderImages();recordEdit();scheduleAutosave();
+      });
+      ratioControl.append(ratio);surface.append(ratioControl);
+    });
+    positionImageCoverControls();
+  }
+  window.addEventListener('resize',positionImageCoverControls);
+  editor.addEventListener('load',positionImageCoverControls,true);
+  editor.addEventListener('scroll',positionImageCoverControls);
+  if (window.ResizeObserver) new ResizeObserver(positionImageCoverControls).observe(editor);
+  new MutationObserver(positionImageCoverControls).observe(editor,{childList:true,subtree:true,attributes:true,characterData:true});
+
+  function renderInlineTools(draft) {
+    const tools = page.querySelector('[data-inline-media-tools]'); tools.replaceChildren(); tools.hidden = true;
+    renderImageCoverControls(draft);
+  }
+
+  function changeLayout(value) {
+    if (imageBusy || videoBusy || !['inline','carousel'].includes(value)) return;
+    recordEdit('boundary');
+    if (mediaLayout === 'inline') {
+      const draft = captureDraft(); images = draft.images; coverId = draft.coverId;
+    }
+    // Keep position markers even while attachments are displayed in a separate strip.
+    const ids = new Set(postContent.inlineImageIds(editor.innerHTML));
+    images.filter(image => !ids.has(image.id)).forEach(image => {
+      const marker = document.createElement('img'); marker.dataset.imageId = image.id;
+      editor.insertAdjacentHTML('beforeend', postContent.renderHtml(marker.outerHTML, [image]));
+    });
+    mediaLayout = value; mediaEditor.clearSelection();
+    if (value === 'inline' && attachedVideo) mountArticleVideo(editor, attachedVideo, attachedVideo.ratio);
+    renderImages(); recordEdit(); scheduleAutosave();
   }
 
   function rememberEditorRange() {
@@ -451,9 +646,9 @@
   }
 
   async function handleImageFiles(fileList, targetRange) {
-    if (imageBusy) return;
+    if (imageBusy || videoBusy) return;
     const usedIds = new Set(postContent.inlineImageIds(editor.innerHTML));
-    images = images.filter(image => usedIds.has(image.id));
+    if (!carousel?.enabled({images,video:attachedVideo,mediaLayout})) images = images.filter(image => usedIds.has(image.id));
     let insertionRange = targetRange || imageInsertionRange();
     const files = Array.from(fileList || []).slice(0, MAX_IMAGES - images.length);
     if (!files.length) {
@@ -483,7 +678,7 @@
       }
       renderImages();
       scheduleAutosave();
-      setStatus("본문에 이미지를 넣었습니다. 사진 아래에 이어서 작성해보세요.", "success");
+      setStatus(mediaLayout === "inline" ? "본문에 이미지를 넣었습니다. 사진 아래에 이어서 작성해보세요." : "사진을 첨부했습니다. 아래에서 순서를 바꿀 수 있습니다.", "success");
     } catch (error) {
       renderImages();
       scheduleAutosave();
@@ -500,13 +695,148 @@
     }
   }
 
+  function setVideoBusy(busy) {
+    videoBusy = busy;
+    editor.setAttribute('contenteditable', busy || imageBusy ? 'false' : 'true');
+    updateHistoryButtons();
+    publishButton.disabled = busy || imageBusy;
+    page.querySelector('[data-preview-post]').disabled = busy;
+    page.querySelector('[data-editor-video]').disabled = busy || imageBusy;
+    inlineImageButton.disabled = busy || imageBusy;
+    page.querySelectorAll('[data-video-attachment] button,[data-video-attachment] select,[data-inline-video-ratio],[data-inline-video-remove]').forEach(control => { control.disabled = busy; });
+    videoAttachment.setAttribute('aria-busy', String(busy));
+    if (!busy) renderVideoAttachment();
+  }
+
+  function setMediaRatio(value) {
+    if (imageBusy || videoBusy || !videoMedia?.RATIOS.includes(value)) return;
+    recordEdit('boundary'); mediaRatio = value;
+    if (attachedVideo && mediaLayout !== "inline") attachedVideo = videoMedia.cleanVideo({...attachedVideo, ratio:value});
+    renderVideoAttachment(); recordEdit(); scheduleAutosave();
+  }
+
+  function removeAttachment(key) {
+    if (imageBusy || videoBusy) return;
+    recordEdit('boundary');
+    if (key === `video:${attachedVideo?.id}`) {
+      attachedVideo = null;
+      editor.querySelectorAll('div[data-video-id]').forEach(node => {videoMedia?.release(node);node.remove();});
+    } else if (key.startsWith('image:')) {
+      const id = key.slice(6);
+      editor.querySelectorAll('img[data-image-id]').forEach(node => {if(node.dataset.imageId === id) node.remove();});
+      images = images.filter(image => image.id !== id);
+      if (coverId === id) coverId = images[0]?.id || '';
+    }
+    mediaOrder = mediaOrder.filter(value => value !== key);
+    mediaEditor.clearSelection(); renderImages(); recordEdit(); scheduleAutosave();
+  }
+
+  function decorateInlineVideo() {
+    const marker = editor.querySelector('div[data-video-id]');
+    if (mediaLayout !== 'inline' || !marker || !attachedVideo) return;
+    if (!marker.querySelector('[data-inline-video-ratio]')) {
+      const controls = document.createElement('div'); controls.className = 'posting-inline-video-controls';
+      controls.setAttribute('contenteditable','false'); controls.draggable = false;
+      const ratio = document.createElement('select'); ratio.dataset.inlineVideoRatio = '';
+      ratio.setAttribute('aria-label','영상 화면 비율'); ratio.title = '영상 화면 비율';
+      videoMedia.RATIOS.forEach(value => {const option=document.createElement('option');option.value=value;option.textContent=value;ratio.append(option);});
+      ratio.addEventListener('change', () => {
+        if (imageBusy || videoBusy) return; recordEdit('boundary');
+        attachedVideo = videoMedia.cleanVideo({...attachedVideo, ratio:ratio.value});
+        if (captureDraft().coverId === `video:${attachedVideo.id}`) mediaRatio = ratio.value;
+        renderVideoAttachment(); recordEdit(); scheduleAutosave();
+      });
+      const remove = document.createElement('button'); remove.type = 'button'; remove.dataset.inlineVideoRemove = '';
+      remove.setAttribute('aria-label','영상 삭제'); remove.title='영상 삭제'; remove.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+      remove.addEventListener('click', () => removeAttachment(`video:${attachedVideo?.id}`));
+      controls.append(ratio,remove); marker.append(controls);
+
+    }
+    const ratioControl = marker.querySelector('[data-inline-video-ratio]');
+    ratioControl.value = attachedVideo.ratio;
+    let coverButton = marker.querySelector('[data-inline-cover]');
+    if (!coverButton) { coverButton = document.createElement('button'); coverButton.type='button'; coverButton.dataset.inlineCover=''; coverButton.dataset.coverSelect=`video:${attachedVideo.id}`; coverButton.textContent='대표'; coverButton.addEventListener('click', () => selectInlineCover(`video:${attachedVideo.id}`)); marker.append(coverButton); }
+    coverButton.setAttribute('aria-label','이 영상을 대표로 지정');
+    coverButton.setAttribute('aria-pressed',String(captureDraft().coverId === `video:${attachedVideo.id}`));
+    marker.querySelectorAll('select,button').forEach(control => {control.disabled = imageBusy || videoBusy;});
+  }
+
+  function renderVideoAttachment() {
+    const preview = page.querySelector('[data-video-preview]');
+    videoMedia?.release(preview); preview.replaceChildren();
+    syncInlineVideo(); decorateInlineVideo();
+    const draft = captureDraft(), group = mediaLayout !== 'inline';
+    editor.classList.toggle('has-mixed-media', Boolean(group));
+    editor.classList.toggle('has-grouped-video', group);
+    page.querySelectorAll('[name="post-layout"]').forEach(input => {
+      input.checked = input.value === (mediaLayout || 'carousel'); input.disabled = imageBusy || videoBusy;
+    });
+    renderInlineTools(draft);
+    page.querySelector('.posting-image-hint').firstChild.textContent = group ? '사진·영상은 아래에서 순서를 바꿀 수 있습니다. ' : '사진·영상을 드래그해 옮기고, 선택 후 위 도구에서 정렬하세요. 사진 모서리로 크기 조절 · Ctrl+Z로 복원 ';
+    videoAttachment.hidden = !group || (!attachedVideo && !draft.images.length);
+    page.querySelector('[data-editor-video]').title = attachedVideo ? '영상 바꾸기' : '영상 넣기';
+    page.querySelector('[data-editor-video]').setAttribute('aria-label', attachedVideo ? '영상 바꾸기' : '영상 넣기');
+    if (group && carousel) {
+      mediaOrder = carousel.items(draft).map(item => item.key);
+      const gallery = carousel.create({...draft,mediaLayout:'carousel'}, {
+        editing:true, selectedKey:selectedMediaKey, disabled:imageBusy || videoBusy,
+        onSelect:key => {selectedMediaKey = key;},
+        onRatioChange:setMediaRatio, onRemove:removeAttachment,
+        onReorder:keys => {
+          if(imageBusy || videoBusy || keys.length !== mediaOrder.length || new Set(keys).size !== keys.length || keys.some(key => !mediaOrder.includes(key))) return;
+          recordEdit('boundary'); mediaOrder = keys.slice(); renderVideoAttachment(); recordEdit(); scheduleAutosave();
+        },
+      });
+      if (gallery) preview.append(gallery);
+    }
+    mediaEditor.refresh();
+  }
+
+  async function handleVideoFile(file) {
+    if (!file || imageBusy || videoBusy) return;
+    const generation = ++videoGeneration;
+    const uploadRange = imageInsertionRange();
+    recordEdit("boundary");
+    setVideoBusy(true);
+    setStatus('영상을 확인하고 이 브라우저에 저장하고 있습니다…', 'neutral', true);
+    try {
+      if (!videoMedia) throw new Error('영상 기능을 불러오지 못했습니다. 새로고침해주세요.');
+      const imported = await videoMedia.importFile(file);
+      // Navigating away or restoring another draft cancels this attachment operation.
+      if (generation !== videoGeneration) return;
+      const oldVideoKey = attachedVideo ? `video:${attachedVideo.id}` : "";
+      mediaOrder = mediaOrder.map(key => key === oldVideoKey ? `video:${imported.id}` : key);
+      if (selectedMediaKey === oldVideoKey) selectedMediaKey = `video:${imported.id}`;
+      attachedVideo = {...imported, ratio:mediaRatio};
+      if (!mediaLayout && images.length) mediaLayout = "carousel";
+      const previousMarker = [...editor.querySelectorAll("div[data-video-id]")].find(node => `video:${node.dataset.videoId}` === oldVideoKey);
+      if (previousMarker) { videoMedia.release(previousMarker); previousMarker.dataset.videoId = attachedVideo.id; previousMarker.replaceChildren(); }
+      else if (mediaLayout === "inline") insertVideoAtCaret(uploadRange);
+      recordEdit();
+      renderVideoAttachment();
+      if (editingPostId) setStatus('영상을 첨부했습니다. 수정 저장을 눌러 반영해주세요.', 'success');
+      else if (saveDraft({ manual: false })) setStatus('영상을 첨부하고 임시저장했습니다. 화면 비율을 선택해보세요.', 'success');
+    } catch (error) {
+      if (generation === videoGeneration) setStatus(error?.message || '영상을 첨부하지 못했습니다. 다른 파일을 선택해주세요.', 'error', true);
+    } finally {
+      if (generation === videoGeneration) { setVideoBusy(false); videoInput.value = ''; }
+    }
+  }
+
   function applyDraft(draft) {
     if (!draft || typeof draft !== "object") return;
+    attachedVideo = videoMedia?.cleanVideo(draft.video) || null;
+    mediaOrder = Array.isArray(draft.mediaOrder) ? draft.mediaOrder.slice() : [];
+    mediaRatio = carousel?.ratio(draft) || attachedVideo?.ratio || "4:3";
+    mediaLayout = ["carousel","inline"].includes(draft.mediaLayout) ? draft.mediaLayout : (draft.video ? "" : (draft.images?.length ? "inline" : "carousel"));
+    selectedMediaKey = "";
     titleInput.value = String(draft.title || "").slice(0, 100);
     selectedType = POST_TYPES.includes(draft.type) ? draft.type : "";
     if (Array.from(categorySelect.options).some((option) => option.value === draft.category)) categorySelect.value = draft.category;
     if (Array.from(industrySelect.options).some((option) => option.value === draft.industry)) industrySelect.value = draft.industry;
     tags = Array.isArray(draft.tags) ? [...new Set(draft.tags.map((tag) => String(tag).replace(/^#+/, "").trim()).filter(Boolean))].slice(0, 10) : [];
+    autoTags = new Set((Array.isArray(draft.autoTags) ? draft.autoTags : []).filter(tag => tags.includes(tag)));
+    excludedAutoTags = new Set(Array.isArray(draft.excludedAutoTags) ? draft.excludedAutoTags : []);
     let restoredBytes = 0;
     images = Array.isArray(draft.images) ? draft.images.slice(0, MAX_IMAGES).map((image, index) => ({
       id: String(image?.id || `restored-${index}`),
@@ -518,13 +848,15 @@
       restoredBytes += bytes;
       return true;
     }) : [];
-    coverId = images.some((image) => image.id === draft.coverId) ? String(draft.coverId) : (images[0]?.id || "");
+    coverId = (attachedVideo && draft.coverId === `video:${attachedVideo.id}`) || images.some((image) => image.id === draft.coverId) ? String(draft.coverId) : (images[0]?.id || (attachedVideo ? `video:${attachedVideo.id}` : ""));
+    videoMedia?.release(editor);
     editor.innerHTML = postContent.renderHtml(draft.bodyHtml || "", images);
     const existingIds = new Set(postContent.inlineImageIds(editor.innerHTML));
     images.filter(image => !existingIds.has(image.id)).forEach(image => {
       const marker = document.createElement('img'); marker.dataset.imageId = image.id;
       editor.insertAdjacentHTML('beforeend', postContent.renderHtml(marker.outerHTML, [image]));
     });
+    if (mediaLayout === 'inline' && attachedVideo) mountArticleVideo(editor, attachedVideo, attachedVideo.ratio);
     savedEditorRange = null;
     titleCount.textContent = String(titleInput.value.length);
     renderTypes();
@@ -544,7 +876,7 @@
     return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(date);
   }
 
-  function renderFeedPost(post) {
+  function renderFeedPost(post, quiet = false) {
     if (!post?.id || document.querySelector(`.post-card[data-post-id="${CSS.escape(String(post.id))}"]`)) return;
     const feed = document.querySelector(".feed-panel");
     if (!feed) return;
@@ -596,13 +928,16 @@
       copy.appendChild(tagWrap);
     }
     body.appendChild(copy);
+    const groupedMedia = carousel?.enabled(post);
+    if (groupedMedia) carousel.stripImages(richBody);
     const postImages = Array.isArray(post.images) ? post.images : [];
     const inlineIds = new Set(postContent.inlineImageIds(richBody.innerHTML));
     if (inlineIds.size) card.classList.add("posting-inline-post");
+    if (post.mediaLayout === "inline") card.classList.add("posting-article-post");
     const remainingImages = postImages.filter((image) => !inlineIds.has(image?.id));
-    const cover = remainingImages.find((image) => image?.id === post.coverId) || remainingImages[0];
+    const cover = post.mediaLayout === "inline" ? (postImages.find(image => image?.id === post.coverId) || postImages[0]) : (remainingImages.find((image) => image?.id === post.coverId) || remainingImages[0]);
     const coverSource = safeImageSource(cover?.src);
-    if (coverSource) {
+    if (coverSource && !groupedMedia && post.mediaLayout !== "inline") {
       const image = document.createElement("img");
       image.className = "post-image";
       image.src = coverSource;
@@ -612,6 +947,17 @@
       card.classList.add("posting-no-image");
     }
 
+    if (groupedMedia) { const gallery = carousel.create(post); if (gallery) body.append(gallery); }
+    else if (post.video && videoMedia) {
+      if (post.mediaLayout === "inline") mountArticleVideo(richBody, post.video, post.video.ratio);
+      else body.appendChild(videoMedia.createFigure(post.video));
+    }
+
+    if (post.mediaLayout === "inline") {
+      const gallery = carousel?.create(post);
+      if (gallery) { gallery.classList.add('post-inline-media-preview'); body.append(gallery); }
+    }
+
     let likeState = { liked: false, count: 0 };
     let commentCount = 0;
     try { likeState = store?.getPostLike?.(post.id) || likeState; } catch (_error) { /* keep defaults */ }
@@ -619,38 +965,108 @@
     const footer = document.createElement("footer");
     footer.className = "post-actions";
     footer.innerHTML = `<div><button type="button" class="action-button" data-like-button aria-label="${likeState.liked ? "좋아요 취소" : "좋아요"}" aria-pressed="${Boolean(likeState.liked)}"><i data-lucide="heart"></i><span data-like-count>${Number(likeState.count) || 0}</span></button><button type="button" class="action-button" data-comments-open aria-label="댓글 보기" aria-haspopup="dialog"><i data-lucide="message-circle"></i><span data-comments-count>${Number.isFinite(commentCount) ? commentCount : 0}</span></button></div>`;
+    const bookmark = document.createElement("button");
+    bookmark.type = "button";
+    bookmark.className = "action-button";
+    bookmark.dataset.bookmarkButton = "";
+    bookmark.setAttribute("aria-label", "저장");
+    bookmark.setAttribute("aria-pressed", "false");
+    bookmark.innerHTML = '<i data-lucide="bookmark"></i>';
+    footer.appendChild(bookmark);
     card.append(header, body, footer);
     const firstPost = feed.querySelector(".post-card");
     feed.insertBefore(card, firstPost || null);
+    if (!quiet) window.dispatchEvent(new CustomEvent("misamo:post-rendered"));
   }
+
+  function refreshPost(post) {
+    if (!post) return;
+    const card = [...document.querySelectorAll('.post-card[data-post-id]')].find(node => node.dataset.postId === post.id);
+    if (!card) { renderFeedPost(post); return; }
+    const oldBody = card.querySelector('.post-body');
+    // Build through the established renderer, then transfer only the article body.
+    // The original card, likes, bookmarks, comment form and its draft remain alive.
+    card.removeAttribute('data-post-id');
+    try {
+      renderFeedPost(post, true);
+      const fresh = [...document.querySelectorAll('.post-card[data-post-id]')].find(node => node.dataset.postId === post.id);
+      if (fresh && fresh !== card) {
+        videoMedia?.release(oldBody);
+        oldBody.replaceWith(fresh.querySelector('.post-body'));
+        card.classList.toggle('posting-inline-post', fresh.classList.contains('posting-inline-post'));
+        card.classList.toggle('posting-no-image', fresh.classList.contains('posting-no-image'));
+        card.classList.toggle('posting-article-post', fresh.classList.contains('posting-article-post'));
+        fresh.remove();
+      }
+    } finally { card.dataset.postId = post.id; }
+    window.dispatchEvent(new CustomEvent('misamo:post-updated', {detail:{id:post.id}}));
+    window.dispatchEvent(new CustomEvent('misamo:post-rendered'));
+  }
+  function finishEditing() {
+    if (!editingPostId) return;
+    const backup = composerBackup;
+    editingPostId = ''; composerBackup = null;
+    resetComposer(); applyDraft(backup); resetEditHistory();
+    page.querySelector('.posting-heading h1').textContent = '새 글 작성';
+    publishButton.textContent = '게시하기';
+  }
+  function editPost(id) {
+    if (imageBusy || videoBusy) throw Error('첨부 파일 처리가 끝난 뒤 다시 시도해주세요.');
+    const post = window.MisamoCommunity?.post(id);
+    if (!post || post.authorId !== store?.USER?.id) throw Error('내 게시글만 수정할 수 있습니다.');
+    if (editingPostId) throw Error('현재 수정 중인 글을 저장하거나 뒤로 가기로 취소해주세요.');
+    window.clearTimeout(autosaveTimer); autosaveTimer = 0;
+    const pendingDraft = captureDraft();
+    // Persist pending composition before entering edit mode, including reload recovery.
+    // If storage fails, leave the current composer intact and do not begin editing.
+    if (hasDraftContent(pendingDraft)) store.saveDraft(pendingDraft);
+    composerBackup = pendingDraft; editingPostId = id;
+    resetComposer(); applyDraft(post); resetEditHistory();
+    page.querySelector('.posting-heading h1').textContent = '게시글 수정';
+    publishButton.textContent = '수정 저장';
+    setStatus('기존 작성 초안은 보존됩니다. 뒤로 가면 수정을 취소합니다.', 'success', true);
+    window.misamoNavigate?.('write');
+    if (!window.misamoNavigate) window.location.hash = 'write';
+  }
+  window.MisamoPosting = { editPost, refreshPost, renderPost: renderFeedPost };
 
   function hydratePosts() {
     if (!store?.getPosts) return;
     try {
       const posts = store.getPosts();
       if (!Array.isArray(posts)) return;
-      posts.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).forEach(renderFeedPost);
+      posts.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).forEach(post => renderFeedPost(post));
     } catch (_error) {
       setStatus("저장된 게시글 일부를 불러오지 못했습니다.", "error");
     }
   }
 
   function openPreview() {
+    if (videoBusy) return;
     const draft = captureDraft();
     previewDialog.querySelector("[data-preview-title]").textContent = draft.title || "제목 없음";
     const previewBody = previewDialog.querySelector("[data-preview-body]");
+    videoMedia?.release(previewBody);
     previewBody.innerHTML = postContent.renderHtml(draft.bodyHtml, draft.images) || "<p>내용이 없습니다.</p>";
     const meta = previewDialog.querySelector("[data-preview-meta]");
     meta.textContent = [draft.type, draft.category, draft.industry].filter(Boolean).join(" · ") || "분류 없음";
     const previewImages = previewDialog.querySelector("[data-preview-images]");
+    videoMedia?.release(previewImages);
     previewImages.replaceChildren();
+    const groupedMedia = carousel?.enabled(draft);
+    if (groupedMedia) carousel.stripImages(previewBody);
     const inlineIds = new Set(postContent.inlineImageIds(previewBody.innerHTML));
-    draft.images.filter((entry) => !inlineIds.has(entry.id)).forEach((entry) => {
+    draft.images.filter((entry) => !groupedMedia && !inlineIds.has(entry.id)).forEach((entry) => {
       const image = document.createElement("img");
       image.src = safeImageSource(entry.src);
       image.alt = entry.alt;
       previewImages.appendChild(image);
     });
+    if (groupedMedia) { const gallery = carousel.create(draft); if (gallery) previewImages.append(gallery); }
+    else if (draft.video && videoMedia) {
+      if (draft.mediaLayout === "inline") mountArticleVideo(previewBody, draft.video, draft.video.ratio);
+      else previewImages.appendChild(videoMedia.createFigure(draft.video));
+    }
     const previewTags = previewDialog.querySelector("[data-preview-tags]");
     previewTags.replaceChildren();
     draft.tags.forEach((tag) => {
@@ -663,16 +1079,22 @@
   }
 
   function resetComposer() {
+    videoGeneration += 1;
+    attachedVideo = null;
+    mediaOrder = []; mediaRatio = "4:3"; mediaLayout = "carousel"; selectedMediaKey = "";
+    setVideoBusy(false);
+    renderVideoAttachment();
     window.clearTimeout(autosaveTimer);
     autosaveTimer = 0;
     titleInput.value = "";
+    videoMedia?.release(editor);
     editor.replaceChildren();
     mediaEditor.clearSelection();
     savedEditorRange = null;
     selectedType = "";
     categorySelect.value = "";
     industrySelect.value = "";
-    tags = [];
+    tags = []; autoTags.clear(); excludedAutoTags.clear();
     images = [];
     coverId = "";
     titleCount.textContent = "0";
@@ -683,8 +1105,8 @@
     resetEditHistory();
   }
 
-  function publishPost() {
-    if (imageBusy) return;
+  async function publishPost() {
+    if (imageBusy || videoBusy) return;
     const draft = captureDraft();
     if (!draft.title) {
       setStatus("제목을 입력해주세요.", "error", true);
@@ -694,6 +1116,25 @@
     if (!draft.bodyText) {
       setStatus("본문 내용을 입력해주세요.", "error", true);
       editor.focus();
+      return;
+    }
+    if (draft.video) {
+      const generation = videoGeneration;
+      setVideoBusy(true);
+      try { await videoMedia.assertAvailable(draft.video); }
+      catch (error) { setStatus(error?.message || '영상을 불러오지 못했습니다. 다시 첨부해주세요.', 'error', true); return; }
+      finally { if (generation === videoGeneration) setVideoBusy(false); }
+      if (generation !== videoGeneration) return;
+    }
+    if (editingPostId) {
+      try {
+        const id = editingPostId;
+        window.MisamoCommunity.updatePost(id, draft);
+        refreshPost(window.MisamoCommunity.post(id));
+        finishEditing();
+        window.misamoNavigate?.("home");
+        window.MisamoCommunityUI?.toast("수정사항을 이 브라우저에 저장했습니다.");
+      } catch (error) { setStatus(error?.message || "수정사항을 저장하지 못했습니다.", "error", true); }
       return;
     }
     if (!store?.publish) {
@@ -736,7 +1177,10 @@
     const key=event.key.toLowerCase();
     if(key==='z' || key==='y') {event.preventDefault();event.stopPropagation();travelHistory(key==='y' || event.shiftKey?1:-1);}
   },true);
-  editor.addEventListener("input", event => { rememberEditorRange(); renderImages(); recordEdit(event.inputType==='insertText'?'typing':'action'); scheduleAutosave(); });
+  editor.addEventListener("input", event => {
+    if (event.target !== editor && event.target.closest?.('select,button,input,video')) return;
+    if (mediaLayout === 'inline' && attachedVideo && ![...editor.querySelectorAll('div[data-video-id]')].some(node => node.dataset.videoId === attachedVideo.id)) attachedVideo = null;
+    rememberEditorRange(); renderImages(); recordEdit(event.inputType==='insertText'?'typing':'action'); scheduleAutosave(); });
   inlineImageButton.addEventListener("mousedown", (event) => event.preventDefault());
   inlineImageButton.addEventListener("click", () => {
     if (postContent.inlineImageIds(editor.innerHTML).length >= MAX_IMAGES) {
@@ -779,8 +1223,8 @@
   });
   editLink.addEventListener('click',async()=>{
     const card=contextCard;closeLinkMenu();if(imageBusy || !card || !editor.contains(card)) return;
-    const value=window.prompt('새 HTTPS 주소를 입력해주세요.',card.href);if(value===null) return;
-    let url;try {url=new URL(value.trim());if(url.protocol!=='https:' || url.username || url.password || url.href.length>2048) throw new Error();}catch(_){setStatus('올바른 HTTPS 주소를 입력해주세요.','error');return;}
+    const value=window.prompt('새 주소를 입력해주세요. (예: naver.com)',card.href);if(value===null) return;
+    let url;try {url=new URL(postContent.normalizeLinkAddress(value));}catch(_){setStatus('올바른 주소를 입력해주세요. (예: naver.com)','error');return;}
     recordEdit('boundary');imageBusy=true;editor.contentEditable='false';
     const buttons=Array.from(page.querySelectorAll('.posting-toolbar button,[data-publish-post]'));const disabled=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);
     setStatus('새 링크 정보를 가져오는 중입니다…','neutral',true);
@@ -791,7 +1235,7 @@
       if(!editor.contains(card)) return;
       const holder=document.createElement('template');holder.innerHTML=postContent.linkCard({...data,url:url.href});
       const replacement=holder.content.firstElementChild;if(!replacement) throw new Error();
-      for(const name of ['data-card-id','data-image-width','data-align']) if(card.hasAttribute(name)) replacement.setAttribute(name,card.getAttribute(name));
+      for(const name of ['data-card-id','data-align']) if(card.hasAttribute(name)) replacement.setAttribute(name,card.getAttribute(name));
       holder.innerHTML=postContent.renderHtml(holder.innerHTML,[]);const rendered=holder.content.firstElementChild;
       card.replaceWith(rendered);renderImages();mediaEditor.select(rendered);recordEdit();scheduleAutosave();setStatus('링크를 수정했습니다.','success');
     } catch(_){setStatus('새 링크 정보를 가져오지 못해 기존 카드를 유지했습니다.','error');}
@@ -814,7 +1258,7 @@
   function standaloneLink(text, range) {
     if(!range.collapsed || /\s/.test(text.trim())) return '';
     try {
-      const url=new URL(text.trim());
+      const url=new URL(postContent.normalizeLinkAddress(text));
       if(url.protocol!=='https:' || url.username || url.password || url.href.length>2048) return '';
       let block=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
       while(block!==editor && !block.matches('p,div,li')) block=block.parentElement;
@@ -891,14 +1335,10 @@
   });
   page.querySelector("[data-editor-link]").addEventListener("click", () => {
     if(imageBusy) return;
-    const href = window.prompt("연결할 HTTPS 주소를 입력해주세요. (https://로 시작)");
+    const href = window.prompt("연결할 주소를 입력해주세요. (예: naver.com)");
     if (href === null) return;
-    if (!/^https:\/\//i.test(href.trim())) {
-      setStatus("안전한 HTTPS 주소만 링크로 추가할 수 있습니다.", "error");
-      return;
-    }
     try {
-      const url = new URL(href.trim());
+      const url = new URL(postContent.normalizeLinkAddress(href));
       if (url.protocol !== "https:") throw new Error();
       const range=imageInsertionRange();
       if(standaloneLink(url.href,range)) {void insertLinkPreview(url.href,range);return;}
@@ -920,21 +1360,39 @@
   });
   tagInput.addEventListener("blur", () => addTag(tagInput.value));
   imageInput.addEventListener("change", () => handleImageFiles(imageInput.files));
+  page.querySelectorAll('[name="post-layout"]').forEach(input => input.addEventListener('change', () => { if (input.checked) changeLayout(input.value); }));
+  page.querySelector('[data-editor-video]').addEventListener('mousedown', event => event.preventDefault());
+  page.querySelector('[data-editor-video]').addEventListener('click', () => { if (!videoBusy && !imageBusy) { rememberEditorRange(); videoInput.click(); } });
+  videoInput.addEventListener('change', () => handleVideoFile(videoInput.files?.[0]));
   page.querySelector("[data-save-draft]").addEventListener("click", () => saveDraft({ manual: true }));
   page.querySelector("[data-preview-post]").addEventListener("click", openPreview);
   page.querySelector("[data-publish-post]").addEventListener("click", publishPost);
   page.querySelector("[data-write-back]").addEventListener("click", () => {
     window.clearTimeout(autosaveTimer);
     autosaveTimer = 0;
-    saveDraft({ manual: false });
+    if (editingPostId) finishEditing();
+    else saveDraft({ manual: false });
     if (typeof window.misamoNavigate === "function") window.misamoNavigate("home");
     else window.location.hash = "home";
   });
   previewDialog.querySelector("[data-preview-close]").addEventListener("click", () => previewDialog.close());
+  previewDialog.addEventListener('close', () => {
+    const attachments = previewDialog.querySelector('[data-preview-images]');
+    videoMedia?.release(attachments);
+    videoMedia?.release(previewDialog.querySelector("[data-preview-body]"));
+    attachments.replaceChildren();
+  });
   previewDialog.addEventListener("click", (event) => {
     if (event.target === previewDialog) previewDialog.close();
   });
   window.addEventListener("misamo:view", (event) => {
+    if (event.detail !== 'write' && videoBusy) {
+      videoGeneration += 1;
+      setVideoBusy(false);
+      videoInput.value = '';
+      setStatus('화면을 이동해 영상 첨부를 취소했습니다. 기존 작성 내용은 유지됩니다.', 'neutral');
+    }
+    if (event.detail !== "write" && editingPostId) finishEditing();
     if (event.detail !== "write" && writingActive && autosaveTimer) {
       window.clearTimeout(autosaveTimer);
       autosaveTimer = 0;

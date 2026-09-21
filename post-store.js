@@ -3,6 +3,17 @@
   const KEY = 'misamo.prototype.v1';
   const USER = Object.freeze({ id: 'demo-me', name: 'misamo_korea', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80' });
   const copy = value => JSON.parse(JSON.stringify(value));
+  function cleanVideo(video) {
+    if (video == null) return null;
+    let media = typeof window !== 'undefined' ? window.MisamoVideo : null;
+    if (!media && typeof require === 'function') {
+      try { media = require('./video-media.js'); } catch (_) { /* Report a user-facing load error below. */ }
+    }
+    if (typeof media?.cleanVideo !== 'function') throw new Error('동영상 처리 기능을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.');
+    const cleaned = media.cleanVideo(video);
+    if (!cleaned) throw new Error('첨부 동영상 형식, 용량 또는 화면 비율을 확인해주세요.');
+    return cleaned;
+  }
   function createMisamoStore(storage) {
     function read() {
       try {
@@ -15,7 +26,7 @@
     }
     function write(state) {
       try { storage.setItem(KEY, JSON.stringify(state)); }
-      catch (_) { throw new Error('저장 공간이 부족하거나 브라우저 저장이 차단됐습니다. 사진 크기를 줄인 뒤 다시 저장해주세요.'); }
+      catch (_) { throw new Error('저장 공간이 부족하거나 브라우저 저장이 차단됐습니다. 저장 공간과 브라우저 설정을 확인한 뒤 다시 저장해주세요.'); }
     }
     function cleanDraft(draft) {
       const images = Array.isArray(draft.images) ? copy(draft.images) : [];
@@ -26,11 +37,49 @@
       return {
         title: String(draft.title || ''), bodyText: String(draft.bodyText || ''), bodyHtml: String(draft.bodyHtml || ''),
         type: String(draft.type ?? ''), category: String(draft.category ?? ''), industry: String(draft.industry || ''),
-        tags, images, coverId: draft.coverId || images[0]?.id || null, visibility: 'local',
+        tags, images, video: cleanVideo(draft.video),
+        autoTags: Array.isArray(draft.autoTags) ? [...new Set(draft.autoTags.filter(tag => tags.includes(tag)))].slice(0,10) : [],
+        excludedAutoTags: Array.isArray(draft.excludedAutoTags) ? [...new Set(draft.excludedAutoTags.filter(tag => typeof tag === 'string' && tag.length <= 30))].slice(0,1000) : [],
+        mediaOrder: Array.isArray(draft.mediaOrder) ? [...new Set(draft.mediaOrder.filter(k => typeof k === 'string' && k.length < 150))].slice(0,4) : [],
+        mediaRatio: draft.mediaRatio === '4:5' ? '4:3' : ['4:3','1:1','9:16','16:9'].includes(draft.mediaRatio) ? draft.mediaRatio : (cleanVideo(draft.video)?.ratio || '4:3'),
+        mediaLayout: ['carousel','inline'].includes(draft.mediaLayout) ? draft.mediaLayout : '', coverId: draft.coverId || images[0]?.id || null, visibility: 'local',
       };
     }
     return {
       USER,
+      getBookmarkFolders() { return copy(read().bookmarkFolders || []); },
+      getBookmarkAssignments() { return copy(read().bookmarkAssignments || {}); },
+      createBookmarkFolder(name) {
+        name = String(name || '').trim();
+        if (!name || name.length > 30) throw new Error('폴더 이름을 1~30자로 입력해주세요.');
+        const state = read();
+        const folders = state.bookmarkFolders || [];
+        if (folders.some(folder => folder.name === name)) throw new Error('같은 이름의 폴더가 있습니다.');
+        const folder = { id: crypto.randomUUID(), name };
+        state.bookmarkFolders = [...folders, folder]; write(state); return copy(folder);
+      },
+      assignBookmarkFolder(id, folderId) {
+        const state = read();
+        if (!(state.bookmarks || []).includes(id)) throw new Error('먼저 게시글을 저장해주세요.');
+        if (folderId && !(state.bookmarkFolders || []).some(folder => folder.id === folderId)) throw new Error('폴더를 찾을 수 없습니다.');
+        state.bookmarkAssignments = { ...(state.bookmarkAssignments || {}), [id]: folderId };
+        write(state);
+      },
+      getBookmarks() {
+        const bookmarks = read().bookmarks;
+        return Array.isArray(bookmarks) ? [...new Set(bookmarks.filter(id => typeof id === 'string' && id))] : [];
+      },
+      toggleBookmark(id) {
+        if (typeof id !== 'string' || !id) throw new Error('저장할 게시글을 찾을 수 없습니다.');
+        const state = read();
+        const bookmarks = new Set(Array.isArray(state.bookmarks) ? state.bookmarks.filter(value => typeof value === 'string' && value) : []);
+        const saved = !bookmarks.has(id);
+        if (saved) bookmarks.add(id); else bookmarks.delete(id);
+        if (!saved && state.bookmarkAssignments) delete state.bookmarkAssignments[id];
+        state.bookmarks = [...bookmarks];
+        write(state);
+        return saved;
+      },
       readDraft() { return copy(read().draft); },
       saveDraft(draft) { const state = read(); const saved = { ...cleanDraft(draft), savedAt: new Date().toISOString() }; state.draft = saved; write(state); return copy(saved); },
       clearDraft() { const state = read(); state.draft = null; write(state); },

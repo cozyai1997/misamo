@@ -11,7 +11,7 @@
 }
 
 .posting-panel {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .posting-header {
@@ -282,6 +282,11 @@
 }
 
 .posting-toolbar {
+  position: sticky;
+  top: var(--posting-toolbar-top, 86px);
+  z-index: 10;
+  background: var(--surface, #fff);
+  box-shadow: 0 3px 8px #20243808;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -319,8 +324,10 @@
 .posting-toolbar .posting-insert-image {
   display: inline-flex;
   gap: 6px;
-  width: auto;
-  padding: 0 9px;
+  justify-content: center;
+  width: 32px;
+  flex: 0 0 32px;
+  padding: 0;
   color: var(--pink);
   background: #fff2f6;
 }
@@ -976,3 +983,6 @@
 .posting-link-menu :is(a,button):hover,.posting-link-menu :is(a,button):focus-visible {background:#f3f4f7; outline:none;}
 .posting-editor .posting-link-card.is-dragging {opacity:.38;}
 .posting-editor a.posting-link-card {cursor:grab;}
+.media-handle[hidden] {display:none;}
+
+.posting-editor, .posting-editor > * { scroll-margin-top:calc(var(--posting-toolbar-top, 86px) + var(--posting-toolbar-height, 46px) + 12px); }

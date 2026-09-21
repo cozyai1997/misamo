@@ -21,7 +21,9 @@ function initViewNavigation() {
   }
 
   const setView = (view) => {
-    const nextView = pages.some((page) => page.dataset.page === view) ? view : "home";
+    const route = String(view || "home");
+    const base = route.split("/")[0];
+    const nextView = pages.some((page) => page.dataset.page === base) ? base : "home";
 
     pages.forEach((page) => {
       page.classList.toggle("is-active", page.dataset.page === nextView);
@@ -41,7 +43,7 @@ function initViewNavigation() {
       link.setAttribute("aria-current", isActive ? "page" : "false");
     });
 
-    window.history.replaceState(null, "", `#${nextView}`);
+    window.history.replaceState(null, "", `#${nextView === "profile" && route.startsWith("profile/") ? route : nextView}`);
     document.body.classList.toggle('is-writing', nextView === 'write');
     window.dispatchEvent(new CustomEvent('misamo:view', { detail: nextView }));
   };
@@ -56,7 +58,73 @@ function initViewNavigation() {
     });
   });
 
-  setView(window.location.hash.replace("#", "") || "home");
+  const initialView = window.location.hash.replace("#", "") || "home";
+  if (initialView.startsWith('post/')) window.misamoInitialPost = initialView.slice(5);
+  setView(initialView);
+  window.addEventListener("hashchange", () => {
+    if (location.hash.startsWith("#post/") || document.body.classList.contains("is-reading-post")) return;
+    setView(location.hash.slice(1));
+  });
+}
+
+function initMobileSwipeNavigation() {
+  const nav = document.querySelector('.mobile-nav');
+  if (!nav) return;
+  const links = [...nav.querySelectorAll('[data-view-target]')];
+  const order = links.map(link => link.dataset.viewTarget);
+  let gesture = null, suppressClickUntil = 0;
+  const isMobile = () => window.matchMedia?.('(max-width: 980px)').matches;
+  const modalOpen = () => Boolean(document.fullscreenElement || document.querySelector('dialog[open], [aria-modal="true"]:not([hidden])'));
+  function hasSelection() { const selection = window.getSelection(); return selection && !selection.isCollapsed; }
+  function ownsGesture(target) {
+    if (target.closest('input,textarea,select,button,a,[contenteditable],video,audio,.write-view,.posting-editor-block,.misamo-carousel,.stories,[data-hero-carousel],[role="slider"],[data-no-page-swipe]')) return true;
+    for (let node = target; node && node !== document.body; node = node.parentElement) {
+      const overflow = getComputedStyle(node).overflowX;
+      if (/(auto|scroll)/.test(overflow) && node.scrollWidth > node.clientWidth + 2) return true;
+    }
+    return false;
+  }
+  document.addEventListener('touchstart', event => {
+    gesture = null;
+    const target = event.target instanceof Element ? event.target : event.target.parentElement;
+    const onNav = Boolean(target?.closest('.mobile-nav'));
+    if (!isMobile() || event.touches.length !== 1 || modalOpen() || hasSelection()) return;
+    if (!onNav && (!target?.closest('.page-view.is-active') || ownsGesture(target))) return;
+    // Keep operating-system edge gestures and post-detail navigation intact.
+    if (location.hash.startsWith('#post/')) return;
+    const route = location.hash.slice(1).split('/')[0] || 'home';
+    const index = order.indexOf(route); if (index < 0) return;
+    const touch = event.touches[0];
+    if (touch.clientX < 24 || touch.clientX > window.innerWidth - 24) return;
+    gesture = {id:touch.identifier,x:touch.clientX,y:touch.clientY,index,route:location.hash,time:Date.now(),horizontal:false};
+  }, {passive:true});
+  document.addEventListener('touchmove', event => {
+    if (!gesture) return;
+    if (event.touches.length !== 1) { gesture = null; return; }
+    const touch = event.touches[0];
+    const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
+    if (!gesture.horizontal) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { gesture = null; return; }
+      if (Math.abs(dx) >= 18 && Math.abs(dx) > Math.abs(dy) * 1.5) gesture.horizontal = true;
+    }
+    if (gesture.horizontal && event.cancelable) event.preventDefault();
+  }, {passive:false});
+  document.addEventListener('touchend', event => {
+    const current = gesture; gesture = null;
+    if (!current || !current.horizontal || !isMobile() || modalOpen() || hasSelection() || current.route !== location.hash || event.touches.length) return;
+    const touch = [...event.changedTouches].find(item => item.identifier === current.id); if (!touch) return;
+    const dx = touch.clientX-current.x, dy = touch.clientY-current.y;
+    if (Math.abs(dx) < Math.min(96,Math.max(60,window.innerWidth * .15)) || Math.abs(dx) <= Math.abs(dy)*1.5 || Date.now()-current.time > 900) return;
+    suppressClickUntil = Date.now()+500;
+    const next = current.index + (dx < 0 ? 1 : -1);
+    if (next < 0 || next >= links.length) return;
+    // Use the same route handlers as a tap, including the user's own profile.
+    links[next].click();
+  }, {passive:true});
+  document.addEventListener('touchcancel', () => { gesture = null; }, {passive:true});
+  document.addEventListener('click', event => {
+    if (event.isTrusted && Date.now() < suppressClickUntil) { event.preventDefault(); event.stopImmediatePropagation(); }
+  }, true);
 }
 
 function initHeroCarousel() {
@@ -154,5 +222,6 @@ function initLikeButtons() {
 
 initLikeButtons();
 initViewNavigation();
+initMobileSwipeNavigation();
 initHeroCarousel();
 createMisamoIcons();

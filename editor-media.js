@@ -3,8 +3,9 @@
   window.createMisamoEditor = function ({ editor, toolbar, onChange, onFiles, onDelete, onBeforeChange = () => {} }) {
     const doc = editor.ownerDocument, win = doc.defaultView, surface = editor.parentElement;
     let selected = null, savedRange = null, dragging = null, resizing = null;
-    const mediaSelector='img[data-image-id],a[data-link-card="1"]';
-    const mediaId=node=>node?.dataset.linkCard==='1'?`card:${node.dataset.cardId}`:node?.dataset.imageId || '';
+    const mediaSelector='img[data-image-id],a[data-link-card="1"],div[data-video-id]';
+    const mediaId=node=>node?.dataset.linkCard==='1'?`card:${node.dataset.cardId}`:node?.dataset.videoId?`video:${node.dataset.videoId}`:node?.dataset.imageId || '';
+    const isControl=target=>!!target.closest?.('video,audio,input,select,textarea,button');
     const frame = doc.createElement('div');
     frame.className = 'media-selection'; frame.hidden = true;
     frame.innerHTML = '<div class="media-actions"><span data-media-size></span></div>' +
@@ -18,6 +19,7 @@
       Object.assign(frame.style, { left:`${r.left-base.left}px`, top:`${r.top-base.top}px`, width:`${r.width}px`, height:`${r.height}px` });
       frame.querySelector('[data-media-size]').textContent = `${Math.round(r.width)} × ${Math.round(r.height)}`;
       frame.hidden = false;
+      frame.querySelectorAll('[data-media-resize]').forEach(handle=>{handle.hidden=selected.dataset.linkCard==='1' || !!selected.dataset.videoId;});
       const actions = frame.querySelector('.media-actions');
       actions.style.left = `${Math.min(-2, base.width - (r.left-base.left) - actions.offsetWidth - 8)}px`;
     }
@@ -139,6 +141,30 @@
       }
       indicator.hidden=false;
     }
+    function insertVideoAtRange(video, range) {
+      let block=range.startContainer.nodeType===3?range.startContainer.parentElement:range.startContainer;
+      while(block && block!==editor && !/^(P|H[1-6]|DIV|LI|BLOCKQUOTE)$/.test(block.tagName)) block=block.parentElement;
+      if(!block || range.startContainer===block) {
+        // A paragraph offset can still be in the middle of its child nodes.
+        if(!block || !/^(P|H[1-6])$/.test(block.tagName)) {range.insertNode(video);return;}
+      }
+      const before=doc.createRange(),after=doc.createRange();
+      before.selectNodeContents(block);before.setEnd(range.startContainer,range.startOffset);
+      after.selectNodeContents(block);after.setStart(range.startContainer,range.startOffset);
+      const hasContent=fragment=>!!fragment.textContent || !!fragment.querySelector('br,img,[data-video-id],[data-link-card]');
+      if(/^(P|H[1-6])$/.test(block.tagName)) {
+        if(!hasContent(before.cloneContents())) {block.before(video);return;}
+        if(!hasContent(after.cloneContents())) {block.after(video);return;}
+        const remainder=block.cloneNode(false);
+        remainder.removeAttribute('id');
+        remainder.append(after.extractContents());
+        block.after(video,remainder);
+      } else {
+        // Lift out of inline formatting while retaining valid DIV/LI nesting.
+        const remainder=after.extractContents();
+        block.append(video,remainder);
+      }
+    }
     function supportsDrop(event) { return !!dragging || Array.from(event.dataTransfer?.types || []).includes('Files'); }
     editor.addEventListener('click', event => {
       const image=event.target.closest?.(mediaSelector);
@@ -156,12 +182,14 @@
     });
     editor.addEventListener('keydown',event=>{
       if(editor.getAttribute('contenteditable')==='false') return;
+      if(isControl(event.target)) return;
       if(event.key==='Escape') clearSelection();
       if (/^(Arrow|Home|End|Page)/.test(event.key) || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase()==='a')) clearSelection();
       if(selected && ['Delete','Backspace'].includes(event.key)) {event.preventDefault();onBeforeChange();const id=mediaId(selected);clearSelection();onDelete(id);}
     });
     editor.addEventListener('dragstart', event=>{
       if(editor.getAttribute('contenteditable')==='false') {event.preventDefault();return;}
+      if(isControl(event.target) && !event.target.closest?.('[data-inline-video-drag]')) return;
       const image=event.target.closest?.(mediaSelector);if(!image) return;
       onBeforeChange();
       dragging=image;select(image);image.classList.add('is-dragging');surface.classList.add('media-dragging');
@@ -179,7 +207,8 @@
       if(dragging && editor.contains(dragging)) {
         const image=dragging;finishDrag();
         if(range.startContainer===image || image.contains(range.startContainer)) return;
-        image.remove();range.insertNode(image);
+        image.remove();
+        if(image.dataset.videoId) insertVideoAtRange(image,range);else range.insertNode(image);
         range.setStartAfter(image);range.collapse(true);
         editor.focus({preventScroll:true});win.getSelection().removeAllRanges();win.getSelection().addRange(range);
         savedRange=range.cloneRange();select(image);onChange();
@@ -191,7 +220,7 @@
     });
     frame.querySelectorAll('[data-media-resize]').forEach(handle=>{
       handle.addEventListener('pointerdown',event=>{
-        if(!selected || event.button!==0 || editor.getAttribute('contenteditable')==='false') return;event.preventDefault();event.stopPropagation();
+        if(!selected || selected.dataset.linkCard==='1' || selected.dataset.videoId || event.button!==0 || editor.getAttribute('contenteditable')==='false') return;event.preventDefault();event.stopPropagation();
         onBeforeChange();
         const rect=selected.getBoundingClientRect(), er=editor.getBoundingClientRect(), style=win.getComputedStyle(editor);
         const max=er.width-(parseFloat(style.paddingLeft)||0)-(parseFloat(style.paddingRight)||0);

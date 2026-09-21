@@ -21,6 +21,7 @@ function openComposer(savedState) {
   else w.MisamoStore.saveDraft({ title: '본문 이미지', bodyText: '앞뒤', bodyHtml: '<p>앞뒤</p>', images: [photo], tags: [] });
   w.eval(fs.readFileSync(path.join(root, 'post-content.js'), 'utf8'));
   w.eval(fs.readFileSync(path.join(root, 'editor-media.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(root, 'media-carousel.js'), 'utf8'));
   w.eval(fs.readFileSync(path.join(root, 'posting.js'), 'utf8'));
   return dom;
 }
@@ -59,7 +60,7 @@ test('link cards align, delete, undo and update their destination without losing
     assert.equal(editor.querySelector('a'),null);
     w.document.querySelector('[data-editor-command="undo"]').click();card=editor.querySelector('a');
     assert.equal(card.dataset.align,'right');
-    w.prompt=()=> 'https://example.org/new';
+    w.prompt=()=> 'example.org/new';
     w.fetch=async()=>({ok:true,json:async()=>({title:'Updated',description:'New description',image:''})});
     card.dispatchEvent(new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true}));
     const edit=[...w.document.querySelectorAll('[data-link-context-menu] button')].find(b=>b.textContent==='링크 수정');
@@ -70,7 +71,7 @@ test('link cards align, delete, undo and update their destination without losing
   }finally{w.close();}
 });
 
-test('card dragging inserts between words and width survives save and undo', () => {
+test('card dragging still works while manual resize is disabled', () => {
   const dom=openComposer();const w=dom.window;
   try {
     const editor=w.document.querySelector('[data-post-editor]');
@@ -90,13 +91,14 @@ test('card dragging inserts between words and width survives save and undo', () 
     w.document.querySelector('[data-media-resize="se"]').dispatchEvent(new w.MouseEvent('pointerdown',{button:0,clientX:400,clientY:88,bubbles:true}));
     w.document.dispatchEvent(new w.MouseEvent('pointermove',{clientX:240,clientY:88,bubbles:true}));
     w.document.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true}));
-    assert.equal(card.dataset.imageWidth,'30');
+    assert.equal(card.dataset.imageWidth,undefined);
+    assert.equal(w.document.querySelector('[data-media-resize="se"]').hidden,true);
     w.document.querySelector('[data-save-draft]').click();
     const saved=w.MisamoStore.readDraft();
     const holder=w.document.createElement('div');holder.innerHTML=w.MisamoContent.renderHtml(saved.bodyHtml,[]);
-    assert.equal(holder.querySelector('a').style.width,'30%');
+    assert.equal(holder.querySelector('a').style.width,'');
     w.document.querySelector('[data-editor-command="undo"]').click();assert.equal(editor.querySelector('a').dataset.imageWidth,undefined);
-    w.document.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.querySelector('a').dataset.imageWidth,'30');
+    w.document.querySelector('[data-editor-command="redo"]').click();assert.equal(editor.querySelector('a').dataset.imageWidth,undefined);
   }finally{w.close();}
 });
 
@@ -198,7 +200,7 @@ test('inserting at a remembered caret preserves surrounding text and stores only
   } finally { w.close(); }
 });
 
-test('preview and published feed show the inline image once without a duplicate cover', () => {
+test('preview keeps one inline image and article feed shows a media gallery', () => {
   const dom = openComposer(); const w = dom.window;
   try {
     insertBetweenWords(w);
@@ -209,7 +211,10 @@ test('preview and published feed show the inline image once without a duplicate 
     w.document.querySelector('[data-publish-post]').click();
     assert.equal(w.MisamoStore.getPosts().length, 1);
     const card = w.document.querySelector('.feed-panel .post-card');
-    assert.equal(card.querySelectorAll('.post-body img').length, 1);
+    assert.equal(card.querySelectorAll('.post-rich-body img').length, 1);
+    assert.equal(card.querySelectorAll('.post-body > .post-cover-preview > .post-image').length, 0);
+    assert.equal(card.querySelectorAll('.post-inline-media-preview').length, 1);
+    assert.ok(card.classList.contains('posting-article-post'));
     assert.ok(card.classList.contains('posting-inline-post'));
     assert.equal(card.querySelector('.post-rich-body img').previousSibling.textContent, '앞');
     const restored = openComposer(w.localStorage.getItem('misamo.prototype.v1'));
