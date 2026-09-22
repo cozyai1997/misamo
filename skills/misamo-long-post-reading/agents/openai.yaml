@@ -1,0 +1,4 @@
+interface:
+  display_name: "긴 게시글 읽기"
+  short_description: "긴 게시글 읽기 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-long-post-reading. 긴 글을 잘림 없이 펼쳐 읽고 상세화면에서 돌아와도 읽던 위치를 유지하게 해줘."

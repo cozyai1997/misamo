@@ -1,0 +1,4 @@
+interface:
+  display_name: "댓글과 답글"
+  short_description: "댓글과 답글 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-threaded-comments. 평소 접힌 댓글을 아이콘으로 열고 답글을 나눠 불러오면서 작성 중인 입력을 보존해줘."

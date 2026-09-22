@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "source_repository": "https://github.com/cozyai1997/misamo",
+  "source_commit": "abceed54f8a443c8de08ebf07288efcca9270548",
+  "skills": [
+    {
+      "name": "misamo-rich-text-editor",
+      "title": "본문 편집기와 실행 취소",
+      "path": "misamo-rich-text-editor",
+      "sources": [
+        "posting.js",
+        "posting.css",
+        "editor-media.js"
+      ],
+      "tests": [
+        "tests/posting-inline.test.cjs",
+        "tests/editor-media.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-inline-media",
+      "title": "본문 사이 사진·영상 편집",
+      "path": "misamo-inline-media",
+      "sources": [
+        "editor-media.js",
+        "posting.js",
+        "post-content.js",
+        "posting-video.css"
+      ],
+      "tests": [
+        "tests/editor-video.test.cjs",
+        "tests/inline-video-content.test.cjs",
+        "tests/posting-formats.test.cjs",
+        "tests/posting-media-ui.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-video-upload",
+      "title": "모바일 영상 첨부와 검증",
+      "path": "misamo-video-upload",
+      "sources": [
+        "video-media.js",
+        "video-media.css",
+        "posting.js"
+      ],
+      "tests": [
+        "tests/video-media.test.cjs",
+        "tests/video-data.test.cjs",
+        "tests/posting-video.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-media-carousel",
+      "title": "사진·영상 모아보기",
+      "path": "misamo-media-carousel",
+      "sources": [
+        "media-carousel.js",
+        "media-carousel.css",
+        "posting.js"
+      ],
+      "tests": [
+        "tests/media-carousel.test.cjs",
+        "tests/carousel-reorder.test.cjs",
+        "tests/posting-formats.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-long-post-reading",
+      "title": "긴 게시글 읽기",
+      "path": "misamo-long-post-reading",
+      "sources": [
+        "reading.js",
+        "reading.css",
+        "post-content.js"
+      ],
+      "tests": [
+        "tests/reading.test.cjs",
+        "tests/reading-article.test.cjs",
+        "tests/reading-integration.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-threaded-comments",
+      "title": "댓글과 답글",
+      "path": "misamo-threaded-comments",
+      "sources": [
+        "comments.js",
+        "comments.css",
+        "post-store.js"
+      ],
+      "tests": [
+        "tests/comments-inline.test.cjs",
+        "tests/post-store.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-bookmark-folders",
+      "title": "북마크와 저장 폴더",
+      "path": "misamo-bookmark-folders",
+      "sources": [
+        "bookmarks.js",
+        "post-store.js"
+      ],
+      "tests": [
+        "tests/bookmarks.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-community-prototype",
+      "title": "커뮤니티 화면과 사용자 행동",
+      "path": "misamo-community-prototype",
+      "sources": [
+        "community-data.js",
+        "community-shell.js",
+        "community-posts.js"
+      ],
+      "tests": [
+        "tests/community-data.test.cjs",
+        "tests/community-shell.test.cjs",
+        "tests/community-posts.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-mobile-navigation",
+      "title": "모바일 메뉴와 스와이프",
+      "path": "misamo-mobile-navigation",
+      "sources": [
+        "script.js",
+        "index.html",
+        "styles.css"
+      ],
+      "tests": [
+        "tests/mobile-navigation.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-link-preview",
+      "title": "안전한 링크 카드",
+      "path": "misamo-link-preview",
+      "sources": [
+        "api/link-preview.js",
+        "lib/link-preview.cjs",
+        "posting.js",
+        "post-content.js"
+      ],
+      "tests": [
+        "tests/link-preview.test.cjs",
+        "tests/posting-inline.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-browser-storage",
+      "title": "초안·게시글·미디어 저장",
+      "path": "misamo-browser-storage",
+      "sources": [
+        "post-store.js",
+        "video-media.js",
+        "community-data.js"
+      ],
+      "tests": [
+        "tests/post-store.test.cjs",
+        "tests/video-data.test.cjs",
+        "tests/video-media.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-ui-state-design",
+      "title": "아이콘 정렬과 활성 상태",
+      "path": "misamo-ui-state-design",
+      "sources": [
+        "styles.css",
+        "ui-polish.css",
+        "posting.css",
+        "posting-video.css",
+        "posting.js"
+      ],
+      "tests": [
+        "tests/posting-media-ui.test.cjs",
+        "tests/posting-inline.test.cjs",
+        "tests/mobile-navigation.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-auto-hashtags",
+      "title": "본문 해시태그 자동 등록",
+      "path": "misamo-auto-hashtags",
+      "sources": [
+        "posting.js",
+        "post-store.js",
+        "community-data.js"
+      ],
+      "tests": [
+        "tests/posting-body-tags.test.cjs"
+      ]
+    },
+    {
+      "name": "misamo-release-verification",
+      "title": "GitHub 커밋과 운영 배포 검증",
+      "path": "misamo-release-verification",
+      "sources": [
+        "package.json",
+        "vercel.json",
+        ".gitignore",
+        ".vercelignore"
+      ],
+      "tests": []
+    },
+    {
+      "name": "misamo-ios-webview-shell",
+      "title": "iPhone 웹뷰 테스트 앱 준비",
+      "path": "misamo-ios-webview-shell",
+      "sources": [
+        "mobile/ios/Sources/MisamoApp.swift",
+        "mobile/ios/project.yml",
+        "mobile/ios/Info.plist",
+        "mobile/ios/README.md",
+        ".github/workflows/ios-build.yml"
+      ],
+      "tests": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub 커밋과 운영 배포 검증"
+  short_description: "GitHub 커밋과 운영 배포 검증 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-release-verification. 현재 사이트 변경사항을 지정한 GitHub에 올리고 운영 배포가 실제 반영됐는지 확인해줘."

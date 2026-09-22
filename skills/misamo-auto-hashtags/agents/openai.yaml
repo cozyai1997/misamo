@@ -1,0 +1,4 @@
+interface:
+  display_name: "본문 해시태그 자동 등록"
+  short_description: "본문 해시태그 자동 등록 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-auto-hashtags. 본문의 해시태그를 태그 목록에 자동 등록하고 칩을 지워도 원문은 그대로 남겨줘."

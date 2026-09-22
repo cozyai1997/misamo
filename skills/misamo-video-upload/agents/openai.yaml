@@ -1,0 +1,4 @@
+interface:
+  display_name: "모바일 영상 첨부와 검증"
+  short_description: "모바일 영상 첨부와 검증 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-video-upload. 모바일에서도 영상 첨부가 멈추지 않도록 파일 검사·저장·재생 흐름을 구현해줘."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "커뮤니티 화면과 사용자 행동"
+  short_description: "커뮤니티 화면과 사용자 행동 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-community-prototype. 커뮤니티 홈·팔로잉·검색·프로필과 게시글 더보기 동작을 연결해줘."

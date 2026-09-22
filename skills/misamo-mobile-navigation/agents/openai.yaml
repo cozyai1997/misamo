@@ -1,0 +1,4 @@
+interface:
+  display_name: "모바일 메뉴와 스와이프"
+  short_description: "모바일 메뉴와 스와이프 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-mobile-navigation. 모바일 하단 탭과 좌우 스와이프를 연결하되 영상·글쓰기 조작을 방해하지 않게 해줘."

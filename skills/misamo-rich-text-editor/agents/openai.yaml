@@ -1,0 +1,4 @@
+interface:
+  display_name: "본문 편집기와 실행 취소"
+  short_description: "본문 편집기와 실행 취소 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-rich-text-editor. 긴 글에서도 도구 모음이 보이고 서식 상태와 실행 취소가 정확한 게시글 편집기를 구현해줘."

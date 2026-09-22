@@ -1,0 +1,4 @@
+interface:
+  display_name: "사진·영상 모아보기"
+  short_description: "사진·영상 모아보기 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-media-carousel. 사진과 영상을 함께 넘겨보고 숫자나 드래그로 순서를 바꾸는 첨부 영역을 만들어줘."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "iPhone 웹뷰 테스트 앱 준비"
+  short_description: "iPhone 웹뷰 테스트 앱 준비 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-ios-webview-shell. 기존 사이트를 iPhone 웹뷰 테스트 앱으로 준비하고 빌드 검증과 TestFlight 배포 단계를 구분해줘."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "본문 사이 사진·영상 편집"
+  short_description: "본문 사이 사진·영상 편집 구현 흐름과 오류 처리 및 검증 기준"
+  default_prompt: "Use $misamo-inline-media. 본문 중간에 사진과 영상을 넣고 각자 비율을 유지하면서 대표 미리보기를 고를 수 있게 해줘."
