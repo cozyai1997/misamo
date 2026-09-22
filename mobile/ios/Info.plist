@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleDisplayName</key><string>미사모</string>
+  <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+  <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+  <key>UILaunchScreen</key><dict/>
+  <key>UIApplicationSceneManifest</key><dict>
+    <key>UIApplicationSupportsMultipleScenes</key><false/>
+  </dict>
+  <key>UISupportedInterfaceOrientations</key><array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+  <key>NSCameraUsageDescription</key><string>게시글에 첨부할 사진이나 영상을 촬영할 때 카메라를 사용합니다.</string>
+  <key>NSMicrophoneUsageDescription</key><string>게시글에 첨부할 영상을 촬영할 때 소리를 함께 녹음합니다.</string>
+  <key>NSPhotoLibraryUsageDescription</key><string>게시글에 첨부할 사진과 영상을 선택합니다.</string>
+  <key>ITSAppUsesNonExemptEncryption</key><false/>
+</dict></plist>

@@ -1,0 +1,31 @@
+name: Misamo
+options:
+  bundleIdPrefix: com.cozyai1997
+  deploymentTarget:
+    iOS: '16.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '0.1.0'
+    CURRENT_PROJECT_VERSION: '1'
+targets:
+  Misamo:
+    type: application
+    platform: iOS
+    sources: [Sources, Resources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cozyai1997.misamo.beta
+        INFOPLIST_FILE: Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: '1'
+        CODE_SIGN_STYLE: Automatic
+schemes:
+  Misamo:
+    build:
+      targets:
+        Misamo: all
+    run:
+      config: Debug
+    archive:
+      config: Release

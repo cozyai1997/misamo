@@ -1,0 +1,33 @@
+name: iOS build verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['mobile/ios/**', '.github/workflows/ios-build.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: mobile/ios
+        run: xcodegen generate
+      - name: Build iPhone app without distribution credentials
+        working-directory: mobile/ios
+        run: >-
+          xcodebuild -project Misamo.xcodeproj -scheme Misamo
+          -configuration Release -sdk iphoneos -destination 'generic/platform=iOS'
+          -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Package unsigned build evidence
+        working-directory: mobile/ios
+        run: ditto -c -k --sequesterRsrc --keepParent build/Build/Products/Release-iphoneos/Misamo.app Misamo-unsigned.app.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Misamo-unsigned-build-not-installable
+          path: mobile/ios/Misamo-unsigned.app.zip
+          retention-days: 7

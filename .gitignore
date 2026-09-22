@@ -9,3 +9,9 @@ work/
 .vercel/
 .env
 .env.*
+mobile/ios/*.xcodeproj/
+mobile/ios/build/
+mobile/ios/*.zip
+*.p12
+*.p8
+*.mobileprovision

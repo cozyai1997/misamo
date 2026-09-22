@@ -5,3 +5,8 @@ work/
 .vercel/
 .env
 .env.*
+mobile/
+.github/
+*.p12
+*.p8
+*.mobileprovision
