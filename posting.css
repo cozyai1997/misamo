@@ -363,6 +363,9 @@
 .posting-editor img[data-image-id]:focus-visible { outline: 1px solid #a4aab6; }
 .posting-editor img.is-dragging { opacity: 0.38; }
 .posting-toolbar [aria-pressed="true"] { background: #fff0f5; color: var(--pink); border-color: #ffc4d5; }
+.posting-toolbar [data-editor-format][aria-pressed="false"],
+.posting-toolbar [data-editor-format]:disabled { color: #4e5669; background: transparent; border-color: transparent; }
+.posting-toolbar [data-editor-format]:focus-visible { outline: 2px solid #697386; outline-offset: 2px; }
 .media-selection { position: absolute; border: 1px solid #a4aab64d; pointer-events: none; z-index: 3; box-sizing: border-box; }
 .media-selection[hidden], .media-drop-line[hidden] { display: none; }
 .media-handle { position: absolute; width: 14px; height: 14px; border: 0; background: transparent; pointer-events: auto; padding: 0; touch-action: none; }

@@ -6,7 +6,8 @@
 })(typeof window === 'object' ? window : globalThis, function (root) {
   'use strict';
 
-  const MAX_BYTES = 100 * 1024 * 1024;
+  const MAX_BYTES = 1024 * 1024 * 1024;
+  const MAX_DURATION = 300;
   const RATIOS = Object.freeze(['4:3', '1:1', '9:16', '16:9']);
   const MIME_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
   const EXTENSION_TYPES = Object.freeze({mp4:'video/mp4', webm:'video/webm', mov:'video/quicktime'});
@@ -177,10 +178,12 @@
       : ['', 'application/octet-stream'].includes(file.type) ? EXTENSION_TYPES[extension] : null;
     if (!mime) throw new Error('MP4, WebM 또는 MOV 동영상 파일을 선택해주세요.');
     if (!file.size) throw new Error('비어 있는 동영상은 첨부할 수 없습니다.');
-    if (file.size > MAX_BYTES) throw new Error('동영상은 파일당 100MB까지 첨부할 수 있습니다.');
+    if (file.size > MAX_BYTES) throw new Error('동영상은 파일당 최대 1GB까지 첨부할 수 있습니다.');
     if (!root.document || !root.URL?.createObjectURL) throw new Error('이 환경에서는 동영상을 첨부할 수 없습니다. 웹 브라우저에서 다시 시도해주세요.');
     const blob = file.type === mime ? file : file.slice(0, file.size, mime);
     const measured = await inspectFile(blob);
+    // Apply upload limits here so already saved, longer videos remain readable.
+    if (measured.duration > MAX_DURATION) throw new Error('동영상은 최대 5분(300초)까지 첨부할 수 있습니다. 길이를 줄인 뒤 다시 선택해주세요.');
     const id = root.crypto?.randomUUID ? root.crypto.randomUUID() : `video-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const name = String(file.name || `동영상.${Object.keys(EXTENSION_TYPES).find(key => EXTENSION_TYPES[key] === mime)}`).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 240) || '동영상';
     const record = cleanVideo({id, source:'indexeddb', name, mime, size:file.size, ...measured, ratio:'4:3'});
@@ -345,5 +348,5 @@
     return figure;
   }
 
-  return Object.freeze({MAX_BYTES, RATIOS, cleanVideo, importFile, createFigure, setRatio, release, assertAvailable, formatDuration});
+  return Object.freeze({MAX_BYTES, MAX_DURATION, RATIOS, cleanVideo, importFile, createFigure, setRatio, release, assertAvailable, formatDuration});
 });

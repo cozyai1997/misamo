@@ -40,7 +40,7 @@ test('video metadata is bounded and strips unrelated binary metadata', () => {
   assert.equal(api.cleanVideo(null), null);
   assert.deepEqual(api.cleanVideo({...sample(),base64:'data:video/mp4;base64,abc',extra:'ignored'}), sample());
   for (const invalid of [
-    {source:'remote'}, {id:'../bad'}, {mime:'image/png'}, {size:0}, {size:104857601},
+    {source:'remote'}, {id:'../bad'}, {mime:'image/png'}, {size:0}, {size:1024 ** 3 + 1},
     {width:Infinity}, {height:0}, {duration:NaN}, {duration:-1}, {ratio:'3:2'},
     {src:'blob:temporary'}, {src:'https://example.com/video.mp4'}
   ]) assert.equal(api.cleanVideo(sample(invalid)), null, JSON.stringify(invalid));
@@ -73,8 +73,8 @@ test('import rejects unsupported and oversized files before allocating URLs or w
   const {w,api,created,writes}=setup(t);
   await assert.rejects(api.importFile(new w.File(['x'],'x.avi',{type:'video/x-msvideo'})), /MP4|WebM/);
   await assert.rejects(api.importFile(new w.File(['x'],'x.mp4',{type:'image/jpeg'})), /MP4|WebM/);
-  const large=new w.File(['x'],'x.mp4',{type:'video/mp4'});Object.defineProperty(large,'size',{value:104857601});
-  await assert.rejects(api.importFile(large), /100/);
+  const large=new w.File(['x'],'x.mp4',{type:'video/mp4'});Object.defineProperty(large,'size',{value:1024 ** 3 + 1});
+  await assert.rejects(api.importFile(large), /1GB/);
   assert.equal(created.length,0);assert.equal(writes.length,0);
 });
 
@@ -94,6 +94,23 @@ test('mobile metadata-only loading imports without decoded frames and waits for 
   writes[0].transaction.oncomplete();const record=await importing;
   assert.equal(record.name,'store.mp4');assert.equal(record.ratio,'4:3');assert.equal(record.duration,4.25);
   assert.equal(record.src,undefined);assert.deepEqual(revoked,[created[0].url]);
+});
+
+for (const duration of [300,300.01]) test(`video upload enforces 1GB and 300 seconds: ${duration}s`, async t => {
+  const {w,d,api,writes,revoked}=setup(t);
+  assert.equal(api.MAX_BYTES,1024 ** 3);
+  const original=d.createElement.bind(d);let probe;
+  d.createElement=function(name,...args){const element=original(name,...args);if(name==='video')probe=element;return element;};
+  const file=new w.File(['video'],'limit.mp4',{type:'video/mp4'});
+  Object.defineProperty(file,'size',{value:1024 ** 3});
+  const importing=api.importFile(file);importing.catch(()=>{});
+  const rejection=duration>300 ? assert.rejects(importing,/5분|300초/) : null;
+  await tick();assert.ok(probe);
+  Object.defineProperties(probe,{videoWidth:{value:1920},videoHeight:{value:1080},duration:{value:duration}});
+  probe.dispatchEvent(new w.Event('loadedmetadata'));await tick();
+  if(rejection) { await rejection;assert.equal(writes.length,0); }
+  else { assert.equal(writes.length,1);writes[0].transaction.oncomplete();assert.equal((await importing).duration,300); }
+  assert.equal(revoked.length,1);
 });
 
 for (const [filename,mime,expected] of [['PHONE.MP4','','video/mp4'],['PHONE.webm','application/octet-stream','video/webm'],['PHONE.MOV','video/quicktime','video/quicktime'],['PHONE.MOV','','video/quicktime']]) test(`mobile file ${filename} (${mime || 'missing MIME'}) keeps a readable stored blob`, async t => {

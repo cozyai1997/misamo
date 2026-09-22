@@ -46,6 +46,33 @@ function insertBetweenWords(w) {
   return editor;
 }
 
+test('text format buttons reflect native selection state instead of click history', () => {
+  const dom=openComposer(),w=dom.window,d=w.document;
+  try {
+    const editor=d.querySelector('[data-post-editor]');editor.focus();
+    const range=d.createRange();range.selectNodeContents(editor.querySelector('p'));
+    w.getSelection().removeAllRanges();w.getSelection().addRange(range);
+    const state={bold:true,italic:false,underline:true};
+    d.queryCommandState=command=>Boolean(state[command]);
+    d.queryCommandIndeterm=()=>false;
+    const button=command=>d.querySelector(`[data-editor-command="${command}"]`);
+    d.dispatchEvent(new w.Event('selectionchange'));
+    assert.equal(button('bold').getAttribute('aria-pressed'),'true');
+    assert.equal(button('italic').getAttribute('aria-pressed'),'false');
+    assert.equal(button('underline').getAttribute('aria-pressed'),'true');
+    // A failed native command must not pretend that formatting was applied.
+    d.execCommand=()=>false;button('italic').click();
+    assert.equal(button('italic').getAttribute('aria-pressed'),'false');
+    state.bold=false;editor.dispatchEvent(new w.Event('input',{bubbles:true}));
+    assert.equal(button('bold').getAttribute('aria-pressed'),'false');
+    d.queryCommandIndeterm=command=>command==='underline';
+    d.dispatchEvent(new w.Event('selectionchange'));
+    assert.equal(button('underline').getAttribute('aria-pressed'),'false');
+    d.querySelector('[data-post-title]').focus();
+    assert.equal(button('underline').getAttribute('aria-pressed'),'false');
+  } finally {w.close();}
+});
+
 test('link cards align, delete, undo and update their destination without losing layout', async () => {
   const dom=openComposer();const w=dom.window;
   try {

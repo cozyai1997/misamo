@@ -77,7 +77,7 @@ test('invalid video drafts and publishes leave existing records byte-identical',
   const writes = storage.writes;
   const invalid = [
     video({ ratio: '3:2' }),
-    video({ size: 100 * 1024 * 1024 + 1 }),
+    video({ size: 1024 ** 3 + 1 }),
     video({ width: 0 }),
     video({ duration: Infinity }),
     video({ source: 'asset', src: 'https://example.test/clip.mp4' }),

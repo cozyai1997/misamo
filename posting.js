@@ -54,9 +54,9 @@
           <small><b data-title-count>0</b>/100</small>
         </label>
         <div class="posting-toolbar" role="toolbar" aria-label="글자 꾸미기">
-          <button type="button" data-editor-command="bold" aria-label="굵게"><strong>B</strong></button>
-          <button type="button" data-editor-command="italic" aria-label="기울임"><em>I</em></button>
-          <button type="button" data-editor-command="underline" aria-label="밑줄"><u>U</u></button>
+          <button type="button" data-editor-command="bold" data-editor-format aria-pressed="false" aria-label="굵게"><strong>B</strong></button>
+          <button type="button" data-editor-command="italic" data-editor-format aria-pressed="false" aria-label="기울임"><em>I</em></button>
+          <button type="button" data-editor-command="underline" data-editor-format aria-pressed="false" aria-label="밑줄"><u>U</u></button>
           <span aria-hidden="true"></span>
           <button type="button" data-editor-command="insertUnorderedList" aria-label="글머리 기호"><i data-lucide="list"></i></button>
           <button type="button" data-editor-command="insertOrderedList" aria-label="번호 매기기"><i data-lucide="list-ordered"></i></button>
@@ -83,7 +83,7 @@
           <div data-video-preview></div>
           <p class="posting-video-hint">오른쪽 위 숫자로 순서를 선택하거나, 이동 손잡이를 좌우로 드래그하세요. 비율은 모든 첨부에 함께 적용됩니다.</p>
         </section>
-        <p class="posting-video-hint">사진 최대 3장 + 영상 1개 · MP4 / WebM / MOV · 영상 최대 100MB</p>
+        <p class="posting-video-hint">사진 최대 3장 + 영상 1개 · 최대 1GB · 최대 5분(300초)<br>권장: MP4 · MOV / H.264 또는 HEVC 비디오 + AAC 오디오</p>
       </section>
 
       <p class="posting-status" role="status" aria-live="polite" data-posting-status></p>
@@ -253,7 +253,7 @@
       const selected=Array.from(editor.querySelectorAll('img[data-image-id],a[data-card-id],div[data-video-id]')).find(img=>(img.dataset.videoId?`video:${img.dataset.videoId}`:img.dataset.cardId?`card:${img.dataset.cardId}`:img.dataset.imageId)===state.selectedId);
       if(selected) mediaEditor.select(selected);
       lastEditKind='';updateHistoryButtons();scheduleAutosave();
-    } finally {restoringHistory=false;}
+    } finally {restoringHistory=false;syncTextFormatButtons();}
   }
 
   function setStatus(message, tone, sticky) {
@@ -567,6 +567,24 @@
     if (editor.contains(range.startContainer) && editor.contains(range.endContainer)) {
       savedEditorRange = range.cloneRange();
     }
+  }
+
+  function syncTextFormatButtons() {
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    const focus = document.activeElement;
+    const inEditor = range && editor.contains(range.startContainer) && editor.contains(range.endContainer)
+      && (focus === editor || editor.contains(focus) || toolbar.contains(focus)) && !mediaEditor.selectedId();
+    page.querySelectorAll('[data-editor-format]').forEach(button => {
+      let active = false;
+      if (inEditor && !button.disabled) {
+        try {
+          const command = button.dataset.editorCommand;
+          active = !document.queryCommandIndeterm?.(command) && Boolean(document.queryCommandState?.(command));
+        } catch (_) { /* An unavailable command is not active. */ }
+      }
+      button.setAttribute('aria-pressed', String(active));
+    });
   }
 
   function imageInsertionRange() {
@@ -1162,9 +1180,11 @@
     titleCount.textContent = String(titleInput.value.length);
     scheduleAutosave();
   });
-  document.addEventListener("selectionchange", rememberEditorRange);
-  editor.addEventListener("keyup", rememberEditorRange);
-  editor.addEventListener("pointerup", rememberEditorRange);
+  document.addEventListener("selectionchange", () => { rememberEditorRange(); syncTextFormatButtons(); });
+  document.addEventListener('focusin', syncTextFormatButtons);
+  editor.addEventListener("keyup", () => { rememberEditorRange(); syncTextFormatButtons(); });
+  editor.addEventListener("pointerup", () => { rememberEditorRange(); syncTextFormatButtons(); });
+  editor.addEventListener('input', syncTextFormatButtons);
   editor.addEventListener('compositionstart',()=>{recordEdit('boundary');composing=true;});
   editor.addEventListener('compositionend',()=>{composing=false;recordEdit('action');scheduleAutosave();});
   editor.addEventListener('beforeinput',event=>{
@@ -1327,8 +1347,12 @@
         travelHistory(button.dataset.editorCommand==='undo'?-1:1);return;
       }
       recordEdit('boundary');
-      editor.focus();
+      const range = imageInsertionRange();
+      editor.focus({preventScroll:true});
+      const selection = window.getSelection();
+      selection.removeAllRanges(); selection.addRange(range);
       document.execCommand(button.dataset.editorCommand, false, button.dataset.commandValue || null);
+      rememberEditorRange(); syncTextFormatButtons();
       recordEdit();
       scheduleAutosave();
     });
@@ -1416,5 +1440,6 @@
   renderImages();
   try { applyDraft(store?.readDraft?.()); } catch (error) { setStatus(error?.message || "임시저장 글을 불러오지 못했습니다.", "error", true); }
   resetEditHistory();
+  syncTextFormatButtons();
   hydratePosts();
 })();
