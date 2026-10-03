@@ -19,11 +19,18 @@
   let loading=null, migrationBusy=false;
   function localPosts() {
     const raw=localStorage.getItem('misamo.prototype.v1');
-    if(!raw)return [];
-    const state=JSON.parse(raw);
+    const state=raw ? JSON.parse(raw) : {posts:[]};
     if(!Array.isArray(state.posts))throw Error('기존 게시글을 읽을 수 없습니다. 저장 데이터를 초기화하지 마세요.');
     const community=window.MisamoCommunity.state();
-    return state.posts.filter(p=>!community.deleted.includes(p.id) && !cloud.isMigrated(p.id)).map(p=>({...p,...community.edits[p.id]}));
+    const candidates=new Map(state.posts.map(p=>[p.id,p]));
+    // A user may have edited an owned reference card instead of creating a new post.
+    // Include those edits, but never upload untouched shared samples automatically.
+    for(const id of Object.keys(community.edits)) {
+      if(candidates.has(id) || cloud.isMigrated(id))continue;
+      const post=window.MisamoCommunity.post(id);
+      if(post && !post.cloud && post.authorId==='demo-me')candidates.set(id,post);
+    }
+    return [...candidates.values()].filter(p=>!community.deleted.includes(p.id) && !cloud.isMigrated(p.id)).map(p=>({...p,...community.edits[p.id]}));
   }
   function paint() {
     account.textContent=cloud.user?'계정 · 로그아웃':'로그인';

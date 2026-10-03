@@ -183,6 +183,8 @@
     if (!mime) throw new Error('MP4, WebM 또는 MOV 동영상 파일을 선택해주세요.');
     if (!file.size) throw new Error('비어 있는 동영상은 첨부할 수 없습니다.');
     if (file.size > MAX_BYTES) throw new Error('동영상은 파일당 최대 1GB까지 첨부할 수 있습니다.');
+    const cloudLimit = root.MisamoCloudConfig?.maxUploadBytes;
+    if (Number.isSafeInteger(cloudLimit) && cloudLimit > 0 && file.size > cloudLimit) throw new Error(`현재 서버는 영상당 ${Math.floor(cloudLimit / 1024 / 1024)}MB까지 지원합니다. 더 작은 파일을 선택해주세요. 기존 영상 원본은 유지됩니다.`);
     if (!root.document || !root.URL?.createObjectURL) throw new Error('이 환경에서는 동영상을 첨부할 수 없습니다. 웹 브라우저에서 다시 시도해주세요.');
     const blob = file.type === mime ? file : file.slice(0, file.size, mime);
     const measured = await inspectFile(blob);
