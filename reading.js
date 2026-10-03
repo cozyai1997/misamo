@@ -78,7 +78,20 @@
     navigating = true; window.misamoNavigate?.('home'); navigating = false; leaveReader(false);
     document.body.classList.add('is-reading-post'); toolbar.hidden = false;
     if (post) { readingPost = post; post.classList.add('is-reading-target'); setExpanded(post, true); }
-    else { notice.hidden = false; notice.textContent = '이 브라우저에서 게시글을 찾을 수 없습니다. 직접 작성한 글은 작성한 브라우저에 저장됩니다.'; }
+    else {
+      notice.hidden = false; notice.textContent = window.MisamoCloudConfig ? '공개 게시글을 확인하고 있습니다…' : '이 브라우저에서 게시글을 찾을 수 없습니다. 직접 작성한 글은 작성한 브라우저에 저장됩니다.';
+      const load = async () => {
+        if (!window.MisamoCloud) { notice.textContent='서버 연결 기능을 불러오지 못했습니다. 새로고침해주세요.'; return; }
+        try {
+          const found=await window.MisamoCloud.find(window.MisamoCloud.mappedId(id));
+          if(location.hash!==`#post/${encodeURIComponent(id)}`)return;
+          if(found){window.MisamoPosting.renderPost(found);openReader(found.id,false);}
+          else notice.textContent='게시글이 삭제되었거나 아직 공개되지 않았습니다. PC에만 저장된 글은 작성한 브라우저에서 이전해주세요.';
+        } catch(e) { notice.textContent=e.message; }
+      };
+      if(window.MisamoCloud)load();
+      else if(window.MisamoCloudConfig)window.addEventListener('misamo:cloud-loaded',load,{once:true});
+    }
     window.history[push ? 'pushState' : 'replaceState'](null, '', `#post/${encodeURIComponent(id)}`); window.scrollTo({ top: 0, behavior: 'instant' });
   }
   toolbar.querySelector('button').addEventListener('click', () => { leaveReader(true); navigating = true; window.misamoNavigate?.('home'); navigating = false; });

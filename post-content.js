@@ -149,7 +149,7 @@
       });
       const sources = new Map();
       (Array.isArray(images) ? images : []).forEach((image) => {
-        if (image && typeof image.id === 'string' && IMAGE_ID.test(image.id) && typeof image.src === 'string' && IMAGE_SOURCE.test(image.src) && !sources.has(image.id)) {
+        if (image && typeof image.id === 'string' && IMAGE_ID.test(image.id) && typeof image.src === 'string' && (IMAGE_SOURCE.test(image.src) || document.defaultView?.MisamoCloudMedia?.safeSource(image.src)) && !sources.has(image.id)) {
           sources.set(image.id, image);
         }
       });

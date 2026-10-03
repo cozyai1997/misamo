@@ -52,11 +52,12 @@
   fallback.forEach(remember);
   function sources() {
     const byId = new Map(fallback.map(p => [p.id, p]));
-    originalGetPosts().forEach(p => { const n = normalize(p, true); remember(n); byId.set(n.id, n); });
+    originalGetPosts().filter(p => !window.MisamoCloud?.isMigrated(p.id)).forEach(p => { const n = normalize(p, true); remember(n); byId.set(n.id, n); });
+    window.MisamoCloud?.posts().forEach(p => { const n=normalize(p); remember(n); byId.set(n.id,n); });
     return Array.from(byId.values());
   }
   function apply(p, s) {
-    const edit = s.edits[p.id] || {};
+    const edit = p.cloud ? {} : s.edits[p.id] || {};
     const result = { ...p, ...edit, id: p.id, authorId: p.authorId };
     if (p.authorId === me.id) { result.author = s.profile.name || me.name; result.avatar = s.profile.avatar ?? me.avatar; }
     return result;
@@ -66,7 +67,12 @@
     return copy(sources().filter(p => !s.deleted.includes(p.id) && (includeHidden || (!s.hidden.includes(p.id) && !s.blocked.includes(p.authorId) && !(Date.parse(s.snoozed[p.authorId]) > Date.now())))).map(p => apply(p, s)));
   }
   const post = id => posts({ includeHidden: true }).find(p => p.id === id) || null;
-  function profiles() { sources(); const s = read(); return copy(Array.from(knownProfiles.values(), p => p.id === me.id ? { ...me, ...s.profile, id: me.id } : p)); }
+  function profiles() {
+    sources(); const s = read();
+    const user=window.MisamoCloud?.user;
+    if(user) knownProfiles.set(user.id,{id:user.id,name:user.user_metadata?.display_name || '미사모 회원',avatar:'',bio:user.user_metadata?.bio || '',industry:user.user_metadata?.industry || '',category:''});
+    return copy(Array.from(knownProfiles.values(), p => p.id === me.id ? { ...me, ...s.profile, id: me.id } : p));
+  }
   const profile = id => profiles().find(p => p.id === id) || null;
   function requirePost(id, deleted = false) { const p = deleted ? sources().find(p => p.id === id) : post(id); if (!p) throw new Error('게시글을 찾을 수 없습니다.'); return p; }
   function requireAuthor(id) { if (!profile(id)) throw new Error('회원을 찾을 수 없습니다.'); }
@@ -89,6 +95,7 @@
     toggleSubscription(id) { return toggle('subscriptions', 'subscription', id, '게시글 구독 설정을 이 브라우저에 저장했습니다.', false); },
     reportPost(id, reason) { requirePost(id); const text = String(reason || '').trim(); if (!text || text.length > 2000) throw new Error('신고 사유를 1~2,000자로 입력해주세요.'); return change('report-post', id, s => { const r = { id: uid(), postId: id, reason: text, createdAt: now() }; s.reports.unshift(r); return copy(r); }, '신고 사유를 이 브라우저에 기록했습니다. 운영자에게 전송되지 않았습니다.'); },
     updatePost(id, fields) {
+      if (post(id)?.cloud) return window.MisamoCloud.publish(fields,{editing:post(id)});
       const p = owned(id); const edit = {};
       for (const key of ['title', 'bodyText', 'type', 'category', 'industry']) if (Object.hasOwn(fields, key)) edit[key] = String(fields[key] ?? '').trim();
       if (Object.hasOwn(fields, 'bodyHtml')) {
@@ -120,7 +127,10 @@
       if (!result.title || result.title.length > 100 || !result.bodyText || result.bodyText.length > 20000 || result.bodyHtml.length > 100000) throw new Error('제목과 본문 길이를 확인해주세요.');
       return change('edit-post', id, s => { s.edits[id] = { ...(s.edits[id] || {}), ...edit, updatedAt: now() }; return copy({ ...result, updatedAt: s.edits[id].updatedAt }); }, '내 게시글 수정을 이 브라우저에 저장했습니다.');
     },
-    deletePost(id) { owned(id); return setList('deleted', 'delete-post', id, true, '내 게시글을 이 브라우저에서 삭제했습니다. 설정에서 복원할 수 있습니다.'); },
+    deletePost(id) {
+      if(post(id)?.cloud) return window.MisamoCloud.remove(post(id)).then(()=>window.dispatchEvent(new CustomEvent('misamo:cloud-change')));
+      owned(id); return setList('deleted', 'delete-post', id, true, '내 게시글을 이 브라우저에서 삭제했습니다. 설정에서 복원할 수 있습니다.');
+    },
     restoreDeleted(id) { owned(id, true); return setList('deleted', 'restore-deleted-post', id, false); },
     updateProfile(fields) { const edit = {}; for (const key of ['name', 'bio', 'industry', 'category']) if (Object.hasOwn(fields, key)) edit[key] = String(fields[key] ?? '').trim(); if (edit.name !== undefined && (!edit.name || edit.name.length > 50)) throw new Error('이름을 1~50자로 입력해주세요.'); if ((edit.bio || '').length > 1000) throw new Error('소개는 1,000자 이내로 입력해주세요.'); return change('profile', me.id, s => { s.profile = { ...s.profile, ...edit }; return copy({ ...me, ...s.profile, id: me.id }); }, '내 프로필을 수정했습니다.'); },
     sendMessage(id, text, postId = '') { requireAuthor(id); text = String(text || '').trim(); if (!text || text.length > 5000) throw new Error('메시지를 1~5,000자로 입력해주세요.'); if (postId) requirePost(postId); return change('message', id, s => { const m = { id: uid(), recipientId: id, text, postId, createdAt: now() }; s.messages.unshift(m); return copy(m); }, '메시지를 로컬 보관함에 저장했습니다. 상대에게 전송되지 않았습니다.'); },

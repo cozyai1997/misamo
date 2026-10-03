@@ -22,7 +22,7 @@
     // Keep existing attachments readable when retiring the old landscape preset.
     const ratio = value.ratio === '1.91:1' ? '16:9' : value.ratio === '4:5' ? '4:3' : value.ratio;
     if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return null;
-    if (!['indexeddb', 'asset'].includes(source) || !MIME_TYPES.includes(mime)) return null;
+    if (!['indexeddb', 'asset', 'cloud'].includes(source) || !MIME_TYPES.includes(mime)) return null;
     if (typeof name !== 'string' || !name.trim() || name.length > 240 || /[\u0000-\u001f\u007f]/.test(name)) return null;
     if (!Number.isSafeInteger(size) || size <= 0 || size > MAX_BYTES) return null;
     if (![width, height, duration].every(number => typeof number === 'number' && Number.isFinite(number) && number > 0)) return null;
@@ -31,6 +31,10 @@
     if (source === 'asset') {
       if (typeof value.src !== 'string' || !/^assets\/local-test-media\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,159}\.(mp4|webm|mov)$/.test(value.src) || value.src.includes('..')) return null;
       if (EXTENSION_TYPES[value.src.split('.').pop()] !== mime) return null;
+      record.src = value.src;
+    } else if (source === 'cloud') {
+      const media = root.MisamoCloudMedia || (typeof require === 'function' ? require('./cloud-media.js') : null);
+      if (!media?.safeSource(value.src)) return null;
       record.src = value.src;
     } else if (value.src != null && value.src !== '') return null;
     return record;
@@ -348,5 +352,12 @@
     return figure;
   }
 
-  return Object.freeze({MAX_BYTES, MAX_DURATION, RATIOS, cleanVideo, importFile, createFigure, setRatio, release, assertAvailable, formatDuration});
+  async function exportBlob(value) {
+    const record = await assertAvailable(value);
+    if (record.source === 'indexeddb') return readBlob(record);
+    const response = await root.fetch(record.src);
+    if (!response.ok) throw Error('영상 원본을 불러오지 못했습니다.');
+    return new root.Blob([await response.blob()], {type:record.mime});
+  }
+  return Object.freeze({MAX_BYTES, MAX_DURATION, RATIOS, cleanVideo, importFile, createFigure, setRatio, release, assertAvailable, exportBlob, formatDuration});
 });

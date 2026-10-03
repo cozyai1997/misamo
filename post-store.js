@@ -30,7 +30,8 @@
     }
     function cleanDraft(draft) {
       const images = Array.isArray(draft.images) ? copy(draft.images) : [];
-      if (images.length > 3 || images.some(img => typeof img.src !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/=]+$/.test(img.src))) throw new Error('사진은 JPG, PNG, WebP 형식으로 최대 3장까지 첨부해주세요.');
+      const media = typeof window !== 'undefined' ? window.MisamoCloudMedia : (typeof require === 'function' ? require('./cloud-media.js') : null);
+      if (images.length > 3 || images.some(img => typeof img.src !== 'string' || (!/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/=]+$/.test(img.src) && !media?.safeSource(img.src)))) throw new Error('사진은 JPG, PNG, WebP 형식으로 최대 3장까지 첨부해주세요.');
       if (images.reduce((sum, img) => sum + img.src.length, 0) > 1800000) throw new Error('사진 용량이 너무 큽니다. 작은 사진으로 다시 첨부해주세요.');
       const tags = [...new Set((Array.isArray(draft.tags) ? draft.tags : []).map(tag => String(tag).trim().replace(/^#+/, '')).filter(Boolean))];
       if (tags.length > 10) throw new Error('태그는 최대 10개까지 입력해주세요.');
@@ -47,6 +48,7 @@
     }
     return {
       USER,
+      validateDraft: cleanDraft,
       getBookmarkFolders() { return copy(read().bookmarkFolders || []); },
       getBookmarkAssignments() { return copy(read().bookmarkAssignments || {}); },
       createBookmarkFolder(name) {

@@ -3,9 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node --test --test-isolation=none tests/*.test.cjs"
+    "test": "node --test --test-isolation=none tests/*.test.cjs",
+    "build:cloud": "esbuild cloud-client-entry.js --bundle --minify --format=iife --platform=browser --outfile=assets/cloud-client.js"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "jsdom": "26.1.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "tus-js-client": "4.3.1"
   }
 }

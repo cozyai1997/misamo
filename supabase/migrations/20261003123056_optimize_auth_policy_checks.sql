@@ -1,0 +1,3 @@
+alter policy "account owner creates posts" on public.community_posts with check (owner_id = (select auth.uid()) and coalesce((select auth.jwt())->>'is_anonymous','false') = 'false');
+alter policy "account owner updates posts" on public.community_posts using (owner_id = (select auth.uid()) and coalesce((select auth.jwt())->>'is_anonymous','false') = 'false') with check (owner_id = (select auth.uid()) and coalesce((select auth.jwt())->>'is_anonymous','false') = 'false');
+alter policy "owners upload published media" on storage.objects with check (bucket_id='post-media' and (storage.foldername(name))[1]=(select auth.uid())::text and coalesce((select auth.jwt())->>'is_anonymous','false')='false');

@@ -11,3 +11,9 @@ skills/
 *.p12
 *.p8
 *.mobileprovision
+
+supabase/
+tests/
+cloud-client-entry.js
+
+CLOUD-POSTS.md

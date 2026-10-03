@@ -1031,7 +1031,7 @@
   function editPost(id) {
     if (imageBusy || videoBusy) throw Error('첨부 파일 처리가 끝난 뒤 다시 시도해주세요.');
     const post = window.MisamoCommunity?.post(id);
-    if (!post || post.authorId !== store?.USER?.id) throw Error('내 게시글만 수정할 수 있습니다.');
+    if (!post || !(window.MisamoCloud ? window.MisamoCloud.isOwner(post) : post.authorId === store?.USER?.id)) throw Error('내 게시글만 수정할 수 있습니다.');
     if (editingPostId) throw Error('현재 수정 중인 글을 저장하거나 뒤로 가기로 취소해주세요.');
     window.clearTimeout(autosaveTimer); autosaveTimer = 0;
     const pendingDraft = captureDraft();
@@ -1123,9 +1123,25 @@
     resetEditHistory();
   }
 
+  let publishing = false;
   async function publishPost() {
+    if (publishing) return;
+    publishing = true;
+    page.setAttribute('aria-busy','true');
+    const wasInert=page.inert; page.inert=true;
+    editor.contentEditable = 'false';
+    publishButton.disabled = true;
+    try { await publishPostUnchecked(); }
+    finally { publishing = false; page.inert=wasInert; page.removeAttribute('aria-busy'); editor.contentEditable = 'true'; publishButton.disabled = imageBusy || videoBusy; }
+  }
+  async function publishPostUnchecked() {
     if (imageBusy || videoBusy) return;
     const draft = captureDraft();
+    if (window.MisamoCloudConfig) {
+      if (!window.MisamoCloud) { setStatus('서버 연결 기능을 불러오지 못했습니다. 새로고침해주세요.', 'error', true); return; }
+      await window.MisamoCloud.ready;
+      if (!window.MisamoCloud.user) { window.MisamoCloud.openAccount(); return; }
+    }
     if (!draft.title) {
       setStatus("제목을 입력해주세요.", "error", true);
       titleInput.focus();
@@ -1147,11 +1163,11 @@
     if (editingPostId) {
       try {
         const id = editingPostId;
-        window.MisamoCommunity.updatePost(id, draft);
+        await window.MisamoCommunity.updatePost(id, draft);
         refreshPost(window.MisamoCommunity.post(id));
         finishEditing();
         window.misamoNavigate?.("home");
-        window.MisamoCommunityUI?.toast("수정사항을 이 브라우저에 저장했습니다.");
+        window.MisamoCommunityUI?.toast(window.MisamoCommunity.post(id)?.cloud ? "수정사항을 공개 게시글에 저장했습니다." : "수정사항을 이 브라우저에 저장했습니다.");
       } catch (error) { setStatus(error?.message || "수정사항을 저장하지 못했습니다.", "error", true); }
       return;
     }
@@ -1160,12 +1176,18 @@
       return;
     }
     try {
-      const post = store.publish(draft);
+      if(window.MisamoCloud)store.saveDraft(draft);
+      const post = window.MisamoCloud ? await window.MisamoCloud.publish(draft) : store.publish(draft);
+      if (window.MisamoCloud) store.clearDraft();
       window.clearTimeout(autosaveTimer);
       autosaveTimer = 0;
       renderFeedPost(post);
       resetComposer();
-      setStatus("게시글을 이 브라우저의 피드에 추가했습니다.", "success");
+      if (window.MisamoCloud) {
+        try { window.MisamoCloud.finishPublish(); } catch (_) { /* A confirmed server post remains safe if local storage fills. */ }
+        window.dispatchEvent(new CustomEvent('misamo:cloud-change'));
+      }
+      setStatus(post.cloud ? "게시했습니다. PC와 모바일에서 볼 수 있습니다." : "게시글을 이 브라우저의 피드에 추가했습니다.", "success");
       window.dispatchEvent(new CustomEvent("misamo:post-published", { detail: { post } }));
       window.createMisamoIcons?.();
       if (typeof window.misamoNavigate === "function") window.misamoNavigate("home");
